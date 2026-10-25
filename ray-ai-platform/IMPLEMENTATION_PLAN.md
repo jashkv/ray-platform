@@ -149,7 +149,7 @@ flowchart TD
 - **Dependencies:** Phase 12.
 - **Deliverables:**
   - `README.md`
-  - `ARCHITECTURE.md`
+  - `docs/architecture.md`
   - `docs/architecture-review.md`
   - `docs/deployment.md`
   - `docs/security.md`

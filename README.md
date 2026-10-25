@@ -83,7 +83,7 @@ flowchart TD
     RAYHEAD --> ALB
 ```
 
-For complete technical specifications, see [docs/architecture.md](file:///docs/architecture.md) and [ray-ai-platform/ARCHITECTURE.md](file:///ray-ai-platform/ARCHITECTURE.md).
+For complete technical specifications, see [docs/architecture.md](file:///docs/architecture.md).
 
 ---
 
@@ -109,14 +109,12 @@ For complete technical specifications, see [docs/architecture.md](file:///docs/a
 ```
 assignment-1/
 ├── README.md                          # Master project documentation (this file)
-├── docs/                              # Assignment specifications & architecture
-│   ├── architecture.md                # Comprehensive merged architecture blueprint
+├── docs/                              # Architecture & assignment specifications
+│   ├── architecture.md                # Comprehensive unified architecture blueprint
 │   ├── requirment.md                  # Original prompt requirements
-│   ├── architature.md                 # Reference architecture specification
 │   └── Implementation.md              # Implementation guidance and phase specifications
 │
 └── ray-ai-platform/                   # PLATFORM IMPLEMENTATION ROOT
-    ├── ARCHITECTURE.md                # Comprehensive architectural blueprint & formulas
     ├── IMPLEMENTATION_PLAN.md         # 13-phase engineering roadmap & validation gates
     ├── REQUIREMENTS_TRACEABILITY.md   # Requirement-to-test traceability matrix (100% PASS)
     ├── pyproject.toml                 # Pinned Python package dependencies & tool settings
@@ -409,7 +407,7 @@ Review the comprehensive, itemized verification proofs in [ray-ai-platform/REQUI
 
 | Document | Description |
 | :--- | :--- |
-| [ARCHITECTURE.md](file:///ray-ai-platform/ARCHITECTURE.md) | In-depth platform architecture, sizing calculations, and Ray actor mechanics. |
+| [docs/architecture.md](file:///docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
 | [IMPLEMENTATION_PLAN.md](file:///ray-ai-platform/IMPLEMENTATION_PLAN.md) | Complete 13-phase engineering roadmap and validation criteria. |
 | [REQUIREMENTS_TRACEABILITY.md](file:///ray-ai-platform/REQUIREMENTS_TRACEABILITY.md) | Requirement-by-requirement audit matrix with test evidence. |
 | [docs/architecture-review.md](file:///ray-ai-platform/docs/architecture-review.md) | Architectural scorecard against cloud engineering best practices. |

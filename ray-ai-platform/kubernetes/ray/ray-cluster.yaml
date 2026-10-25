@@ -1,0 +1,127 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: ray-cluster
+  namespace: ray-workloads
+  labels:
+    ray.io/node-type: head
+    app.kubernetes.io/name: ray-cluster
+    app.kubernetes.io/part-of: ray-platform
+spec:
+  rayVersion: "2.40.0"
+  
+  # ============================================================================
+  # Head Group Spec (Dedicated On-Demand System Capacity)
+  # ============================================================================
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+      metrics-export-port: "8080"
+      num-cpus: "0"  # Dedicated GCS coordinator: executes no data processing tasks
+      block: "true"
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: ray-head
+          workload-role: ray-head-system
+      spec:
+        serviceAccountName: ray-pipeline-sa
+        nodeSelector:
+          workload-role: ray-head-system
+        containers:
+          - name: ray-head
+            image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/ray-data-pipeline:latest
+            imagePullPolicy: IfNotPresent
+            resources:
+              limits:
+                cpu: "2"
+                memory: "4Gi"
+              requests:
+                cpu: "2"
+                memory: "4Gi"
+            volumeMounts:
+              - mountPath: /dev/shm
+                name: dshm
+            ports:
+              - containerPort: 6379
+                name: gcs
+              - containerPort: 8265
+                name: dashboard
+              - containerPort: 10001
+                name: client
+              - containerPort: 8080
+                name: metrics
+            envFrom:
+              - secretRef:
+                  name: ray-pipeline-secrets
+                  optional: true
+            readinessProbe:
+              httpGet:
+                path: /
+                port: 8265
+              initialDelaySeconds: 15
+              periodSeconds: 10
+            livenessProbe:
+              httpGet:
+                path: /
+                port: 8265
+              initialDelaySeconds: 30
+              periodSeconds: 15
+        volumes:
+          - name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 2Gi
+
+  # ============================================================================
+  # Worker Group Spec (Autoscaling Spot Capacity with EntityResolver Slot)
+  # ============================================================================
+  workerGroupSpecs:
+    - groupName: ray-worker-group
+      replicas: 1
+      minReplicas: 1
+      maxReplicas: 10
+      rayStartParams:
+        block: "true"
+        # 3.6 GiB dedicated to in-memory object store (Apache Arrow shared memory)
+        object-store-memory: "3865470566"
+        # Advertises custom resource slot for deterministic EntityResolver Actor placement
+        resources: '{"entity_resolver_slot": 1}'
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ray-worker
+            workload-role: ray-worker
+            ray.io/node-type: worker
+        spec:
+          serviceAccountName: ray-pipeline-sa
+          nodeSelector:
+            workload-role: ray-worker
+          tolerations:
+            - key: "workload-role"
+              operator: "Equal"
+              value: "ray-worker"
+              effect: "NoSchedule"
+          containers:
+            - name: ray-worker
+              image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/ray-data-pipeline:latest
+              imagePullPolicy: IfNotPresent
+              resources:
+                limits:
+                  cpu: "3"
+                  memory: "12Gi"
+                requests:
+                  cpu: "3"
+                  memory: "12Gi"
+              volumeMounts:
+                - mountPath: /dev/shm
+                  name: dshm
+              envFrom:
+                - secretRef:
+                  name: ray-pipeline-secrets
+                  optional: true
+          volumes:
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 4Gi

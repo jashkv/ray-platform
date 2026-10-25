@@ -1,0 +1,39 @@
+# VCS & Git
+.git
+.gitignore
+.github
+
+# Terraform
+terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform/
+
+# Python caches and virtual environments
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local data & raw files (mounted or fetched from S3 in production)
+application/models/*
+!application/models/.gitkeep
+
+# OS / Editor artifacts
+.DS_Store
+.idea
+.vscode
+*.swp
+*.swo
+
+# Documentation & diagrams
+docs/
+*.md

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ray-system
+  labels:
+    app.kubernetes.io/part-of: ray-platform
+    environment: dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ray-workloads
+  labels:
+    app.kubernetes.io/part-of: ray-platform
+    environment: dev

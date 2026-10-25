@@ -1,0 +1,32 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: ray-data-pipeline-job
+  namespace: ray-workloads
+  labels:
+    app.kubernetes.io/name: ray-pipeline-job
+    app.kubernetes.io/part-of: ray-platform
+spec:
+  # Submits job to the active RayCluster
+  clusterSelector:
+    ray.io/cluster: ray-cluster
+
+  # Execution entrypoint
+  entrypoint: >-
+    python3 -m application.src.ray_pipeline
+    --s1-input s3://${DATA_BUCKET_NAME}/incoming/supply_chain_data_s1.csv
+    --s2-input s3://${DATA_BUCKET_NAME}/incoming/financial_data_s2.csv
+    --catalog-type glue
+    --warehouse-path s3://${DATA_BUCKET_NAME}/iceberg-warehouse/
+    --output-model-dir /tmp/models
+
+  # Automatic cleanup policy after terminal execution
+  shutdownAfterJobFinishes: true
+  ttlSecondsAfterFinished: 600
+  activeDeadlineSeconds: 3600
+
+  # Runtime environment
+  runtimeEnvYAML: |
+    env_vars:
+      PYTHONPATH: "/app"
+      AWS_DEFAULT_REGION: "us-east-1"

@@ -1,0 +1,118 @@
+name: "PR Validation — Lint, Tests & Terraform Plan"
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "application/**"
+      - "terraform/**"
+      - "kubernetes/**"
+      - "helm/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+
+concurrency:
+  group: pr-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-test:
+    name: "Python Linting & Unit Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv Package Manager
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Dependencies
+        run: |
+          cd ray-ai-platform
+          uv pip install --system -e ".[dev]" --only-binary cryptography
+
+      - name: Verify Dataset Generation
+        run: |
+          cd ray-ai-platform
+          python3 application/src/generate_datasets.py
+          test $(wc -l < application/data/supply_chain_data_s1.csv) -ge 1001
+          test $(wc -l < application/data/financial_data_s2.csv) -ge 1001
+
+      - name: Run Pytest Test Suite
+        run: |
+          cd ray-ai-platform
+          pytest application/tests/ -v --junitxml=junit-report.xml
+
+  terraform-check:
+    name: "Terraform Formatting & Validation"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+
+      - name: Terraform Format Check
+        run: |
+          cd ray-ai-platform
+          terraform fmt -check -recursive terraform/
+
+      - name: Validate Bootstrap Layer
+        run: |
+          cd ray-ai-platform/terraform/bootstrap
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate Network Layer
+        run: |
+          cd ray-ai-platform/terraform/network
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate EKS Layer
+        run: |
+          cd ray-ai-platform/terraform/eks
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate Data Layer
+        run: |
+          cd ray-ai-platform/terraform/data
+          terraform init -backend=false
+          terraform validate
+
+  k8s-manifest-check:
+    name: "Kubernetes & CRD Manifest Linting"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Run Manifest Validation Script
+        run: |
+          cd ray-ai-platform
+          python3 -c "
+          import yaml, glob, sys
+          files = glob.glob('kubernetes/**/*.yaml', recursive=True) + glob.glob('helm/**/*.yaml', recursive=True)
+          for f in files:
+              with open(f) as fp:
+                  list(yaml.safe_load_all(fp))
+              print(f'[+] Valid: {f}')
+          "

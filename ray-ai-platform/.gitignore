@@ -1,0 +1,100 @@
+# ==============================================================================
+# Security & Credentials - NEVER COMMIT
+# ==============================================================================
+*.pem
+*.key
+*.pub
+*.p12
+*.keystore
+id_rsa*
+*.id_rsa
+.env
+.env.*
+!.env.example
+*.tfvars
+!*.tfvars.example
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
+# ==============================================================================
+# Terraform Artifacts & Local State
+# ==============================================================================
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ==============================================================================
+# Python Artifacts & Environments
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv
+venv/
+ENV/
+env/
+.uv/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# ==============================================================================
+# OS & IDE Metadata
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ==============================================================================
+# Ray & Application Artifacts
+# ==============================================================================
+/tmp/ray/
+ray_results/
+application/models/*.pkl
+application/models/*.json
+application/models/*.bin
+!application/models/.gitkeep

@@ -1,0 +1,114 @@
+name: "Deploy — Build, Publish & RayJob Trigger"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "application/**"
+      - "kubernetes/**"
+      - "Dockerfile"
+
+permissions:
+  id-token: write  # Required for AWS OIDC authentication
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  ECR_REPOSITORY: "ray-data-pipeline"
+  EKS_CLUSTER_NAME: "ray-platform-dev-eks"
+
+jobs:
+  build-and-publish:
+    name: "Build & Push ECR Image"
+    runs-on: ubuntu-latest
+    outputs:
+      image_uri: ${{ steps.build-image.outputs.image }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: "sts.amazonaws.com"
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag and Push Image to Amazon ECR
+        id: build-image
+        run: |
+          cd ray-ai-platform
+          REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          COMMIT_SHA="$(git rev-parse --short HEAD)"
+          IMAGE_TAG="${REGISTRY}/${ECR_REPOSITORY}:${COMMIT_SHA}"
+          IMAGE_LATEST="${REGISTRY}/${ECR_REPOSITORY}:latest"
+
+          docker build -t "$IMAGE_TAG" -t "$IMAGE_LATEST" -f application/Dockerfile .
+          docker push "$IMAGE_TAG"
+          docker push "$IMAGE_LATEST"
+
+          echo "image=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+  submit-rayjob:
+    name: "Submit & Monitor RayJob on EKS"
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Submit RayJob Custom Resource
+        run: |
+          cd ray-ai-platform
+          IMAGE_URI="${{ needs.build-and-publish.outputs.image_uri }}"
+          JOB_NAME="ray-job-$(date +%s)"
+
+          # Render dynamic job template
+          sed -i "s|123456789012.dkr.ecr.us-east-1.amazonaws.com/ray-data-pipeline:latest|${IMAGE_URI}|g" kubernetes/jobs/ray-job.yaml
+          sed -i "s|ray-data-pipeline-job|${JOB_NAME}|g" kubernetes/jobs/ray-job.yaml
+
+          kubectl apply -f kubernetes/jobs/ray-job.yaml
+          echo "JOB_NAME=${JOB_NAME}" >> $GITHUB_ENV
+
+      - name: Monitor RayJob Execution to Terminal State
+        run: |
+          echo "[*] Polling RayJob status for ${JOB_NAME}..."
+          TIMEOUT=1800
+          INTERVAL=15
+          ELAPSED=0
+
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            STATUS=$(kubectl get rayjobs.ray.io -n ray-workloads "${JOB_NAME}" -o jsonpath='{.status.jobStatus}' 2>/dev/null || echo "PENDING")
+            echo "Current RayJob Status: ${STATUS} (${ELAPSED}s elapsed)"
+
+            if [ "${STATUS}" == "SUCCEEDED" ]; then
+              echo "[+] RayJob Succeeded!"
+              exit 0
+            elif [ "${STATUS}" == "FAILED" ] || [ "${STATUS}" == "STOPPED" ]; then
+              echo "[-] RayJob ${STATUS}!"
+              kubectl describe rayjobs.ray.io -n ray-workloads "${JOB_NAME}"
+              kubectl logs -n ray-workloads -l ray.io/node-type=head --tail=100
+              exit 1
+            fi
+
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo "[-] Timeout waiting for RayJob to complete."
+          exit 1

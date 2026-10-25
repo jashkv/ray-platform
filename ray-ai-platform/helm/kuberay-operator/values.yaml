@@ -1,0 +1,48 @@
+# ==============================================================================
+# KubeRay Operator Helm Values (v1.2.2 Pinned)
+# ==============================================================================
+image:
+  repository: quay.io/kuberay/operator
+  tag: v1.2.2
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Deploy KubeRay Operator strictly on the dedicated On-Demand system node pool
+nodeSelector:
+  workload-role: ray-head-system
+
+tolerations: []
+
+affinity: {}
+
+serviceAccount:
+  create: true
+  name: kuberay-operator
+
+# Security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+  capabilities:
+    drop:
+      - ALL
+
+logging:
+  format: json
+
+# Expose operator metrics for Prometheus
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true

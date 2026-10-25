@@ -1,0 +1,10 @@
+aws_region         = "us-east-1"
+environment        = "dev"
+project_name       = "ray-platform"
+cluster_version    = "1.31"
+vpc_id             = "vpc-0123456789abcdef0"
+private_subnet_ids = ["subnet-0123456789abcdef1", "subnet-0123456789abcdef2", "subnet-0123456789abcdef3"]
+tags = {
+  Layer = "EKS"
+  Owner = "PlatformTeam"
+}

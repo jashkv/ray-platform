@@ -1,0 +1,32 @@
+# ==============================================================================
+# Secure Ray Dashboard Exposure Configuration
+# Security Rule: NEVER expose Ray Dashboard directly to the public internet
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ray-dashboard-ingress
+  namespace: ray-workloads
+  annotations:
+    kubernetes.io/ingress.class: alb
+    # Internal Scheme: Bounded strictly to the private VPC / VPN subnet
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    # OAuth2 / OIDC Authentication Hook (Prevents unauthenticated access)
+    alb.ingress.kubernetes.io/auth-type: cognito
+    alb.ingress.kubernetes.io/auth-idp-cognito: '{"userPoolARN":"arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_example","userPoolClientID":"client123","userPoolDomain":"ray-auth"}'
+    alb.ingress.kubernetes.io/auth-on-unauthenticated-request: authenticate
+spec:
+  rules:
+    - host: ray-dashboard.internal.company.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ray-cluster-head-svc
+                port:
+                  number: 8265

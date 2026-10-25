@@ -1,0 +1,115 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Ray Cluster Overview & Capacity",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "none" }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "id": 2,
+      "title": "Active Ray Nodes",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(ray_cluster_active_nodes) or count(kube_pod_status_phase{phase='Running', pod=~'ray-cluster.*'})",
+          "legendFormat": "Nodes"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "percent" }
+      },
+      "gridPos": { "h": 6, "w": 9, "x": 6, "y": 1 },
+      "id": 3,
+      "title": "Cluster CPU Utilization",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "avg(ray_node_cpu_utilization) by (instance)",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" }
+      },
+      "gridPos": { "h": 6, "w": 9, "x": 15, "y": 1 },
+      "id": 4,
+      "title": "Ray Object Store Memory Used",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(ray_object_store_memory{type='used'}) by (instance)",
+          "legendFormat": "Used - {{instance}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "id": 5,
+      "title": "Tasks, Actors & EntityResolver",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "none" }
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "id": 6,
+      "title": "Ray Tasks by State",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(ray_tasks_state) by (State)",
+          "legendFormat": "{{State}}"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "none" }
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+      "id": 7,
+      "title": "Ray Actors State (EntityResolver)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(ray_actors_state) by (State, Name)",
+          "legendFormat": "{{Name}} - {{State}}"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["ray", "kubernetes", "platform"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Ray AI Platform - Cluster & Job Metrics",
+  "uid": "ray-ai-platform-overview",
+  "version": 1
+}

@@ -1,0 +1,11 @@
+aws_region           = "us-east-1"
+environment          = "dev"
+project_name         = "ray-platform"
+namespace            = "ray-workloads"
+service_account_name = "ray-pipeline-sa"
+oidc_provider_arn    = "arn:aws:iam::123456789012:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLE"
+oidc_provider_url    = "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLE"
+tags = {
+  Layer = "Data"
+  Owner = "DataPlatform"
+}

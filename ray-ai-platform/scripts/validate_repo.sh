@@ -46,7 +46,7 @@ REQUIRED_FILES=(
     ".dockerignore"
     "pyproject.toml"
     "REQUIREMENTS_TRACEABILITY.md"
-    "IMPLEMENTATION_PLAN.md"
+    "../docs/implementation.md"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do

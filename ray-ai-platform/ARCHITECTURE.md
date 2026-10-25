@@ -6,6 +6,9 @@
 - **Machine Learning:** Ray Train with XGBoost / Gradient Boosting Revenue Regression
 - **Security Posture:** Zero-Trust IRSA (Workload Identity), EKS Access Entries, GitHub Actions OIDC
 
+> [!TIP]
+> For the complete, exhaustive merged architecture specification including full Python implementations, KubeRay CRDs, DynamoDB lease algorithms, and CloudWatch Log Insights queries, refer to the unified master document in [docs/architecture.md](file:///docs/architecture.md).
+
 ---
 
 ## 1. High-Level Architecture Diagram

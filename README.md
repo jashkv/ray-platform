@@ -83,7 +83,7 @@ flowchart TD
     RAYHEAD --> ALB
 ```
 
-For complete technical specifications, see [ray-ai-platform/ARCHITECTURE.md](file:///ray-ai-platform/ARCHITECTURE.md).
+For complete technical specifications, see [docs/architecture.md](file:///docs/architecture.md) and [ray-ai-platform/ARCHITECTURE.md](file:///ray-ai-platform/ARCHITECTURE.md).
 
 ---
 
@@ -109,9 +109,10 @@ For complete technical specifications, see [ray-ai-platform/ARCHITECTURE.md](fil
 ```
 assignment-1/
 ├── README.md                          # Master project documentation (this file)
-├── docs/                              # Assignment specifications & reference material
+├── docs/                              # Assignment specifications & architecture
+│   ├── architecture.md                # Comprehensive merged architecture blueprint
 │   ├── requirment.md                  # Original prompt requirements
-│   ├── architature.md                 # Reference architecture guidelines
+│   ├── architature.md                 # Reference architecture specification
 │   └── Implementation.md              # Implementation guidance and phase specifications
 │
 └── ray-ai-platform/                   # PLATFORM IMPLEMENTATION ROOT

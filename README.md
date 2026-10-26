@@ -122,7 +122,7 @@ assignment-1/
     │   ├── data/                      # S3 Lakehouse bucket, Glue Catalog DB, DynamoDB ledger, IRSA
     │   ├── platform/                  # ECR container registry, GitHub Actions OIDC provider & role
     │   ├── modules/                   # Reusable modules (vpc, eks, s3_iceberg, ledger, irsa)
-    │   └── environments/              # Environment-specific tfvars (dev, staging, prod)
+    │   └── environments/              # Environment configuration tfvars (test)
     │
     ├── kubernetes/                    # Kubernetes manifests & KubeRay specifications
     │   ├── namespaces/                # Namespace definitions (ray-system, ray-workloads)
@@ -294,7 +294,7 @@ flowchart LR
    ```bash
    cd ../eks
    terraform init -backend-config=backend.hcl && terraform apply
-   aws eks update-kubeconfig --region us-east-1 --name ray-platform-prod
+   aws eks update-kubeconfig --region us-east-1 --name ray-platform-test-eks
    ```
 
 4. **Deploy Lakehouse Storage & IAM Roles:**
@@ -383,7 +383,7 @@ The platform exposes deep instrumentation across infrastructure, operator, and d
     kubectl port-forward svc/corporate-data-cluster-head-svc 8265:8265 -n ray-workloads
     ```
     Access via `http://localhost:8265`.
-  - **Production Ingress:**
+  - **Authenticated Ingress:**
     Configured with an AWS Application Load Balancer and AWS Cognito OAuth2 proxy. The dashboard is never exposed publicly without authentication.
 - **Automated Health Check Script:**
   ```bash

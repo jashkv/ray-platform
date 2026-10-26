@@ -1,0 +1,26 @@
+# ==============================================================================
+# Test Environment Configuration — Ray AI Platform on AWS
+# ==============================================================================
+
+aws_region   = "us-east-1"
+environment  = "test"
+project_name = "ray-platform"
+
+# Network Layer
+vpc_cidr                  = "10.0.0.0/16"
+availability_zones        = ["us-east-1a", "us-east-1b", "us-east-1c"]
+enable_single_nat_gateway = true
+
+# EKS Cluster Layer
+cluster_version = "1.31"
+
+# Platform & Workload Identity (IRSA)
+namespace            = "ray-workloads"
+service_account_name = "ray-pipeline-sa"
+
+tags = {
+  Environment = "test"
+  Project     = "ray-platform"
+  ManagedBy   = "Terraform"
+  CostCenter  = "AI-Platform"
+}

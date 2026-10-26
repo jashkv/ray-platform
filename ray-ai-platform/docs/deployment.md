@@ -50,7 +50,7 @@ terraform plan -out=eks.tfplan
 terraform apply eks.tfplan
 
 # Configure local kubectl context
-aws eks update-kubeconfig --region us-east-1 --name ray-platform-dev-eks
+aws eks update-kubeconfig --region us-east-1 --name ray-platform-test-eks
 ```
 
 ---

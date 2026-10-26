@@ -16,7 +16,7 @@ permissions:
 env:
   AWS_REGION: "us-east-1"
   ECR_REPOSITORY: "ray-data-pipeline"
-  EKS_CLUSTER_NAME: "ray-platform-dev-eks"
+  EKS_CLUSTER_NAME: "ray-platform-test-eks"
 
 jobs:
   build-and-publish:

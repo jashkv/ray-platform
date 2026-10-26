@@ -8,9 +8,9 @@ SHELL := /usr/bin/env bash
 
 # ------------------------------------------------------------------------------
 # Configuration Variables (Overridable via environment or command-line)
-# Example: make tf-plan-all ENVIRONMENT=prod AWS_REGION=us-west-2
+# Example: make tf-plan-all ENVIRONMENT=test AWS_REGION=us-west-2
 # ------------------------------------------------------------------------------
-ENVIRONMENT          ?= dev
+ENVIRONMENT          ?= test
 AWS_REGION           ?= us-east-1
 AWS_ACCOUNT_ID       ?= $(shell aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "123456789012")
 PROJECT_NAME         ?= ray-platform
@@ -439,7 +439,7 @@ helm-uninstall-kuberay: ## Uninstall KubeRay Operator
 	@$(HELM) uninstall kuberay-operator --namespace $(K8S_NAMESPACE_SYSTEM)
 	@$(LOG_OK) "KubeRay Operator uninstalled."
 
-k8s-apply-raycluster: k8s-apply-security ## Deploy production RayCluster CRD
+k8s-apply-raycluster: k8s-apply-security ## Deploy RayCluster CRD
 	@$(LOG_INFO) "Deploying RayCluster $(RAY_CLUSTER_NAME)..."
 	@$(KUBECTL) apply -f $(K8S_DIR)/ray/ray-cluster.yaml
 	@$(LOG_OK) "RayCluster manifest submitted."

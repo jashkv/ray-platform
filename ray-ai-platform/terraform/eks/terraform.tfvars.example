@@ -1,5 +1,5 @@
 aws_region         = "us-east-1"
-environment        = "dev"
+environment        = "test"
 project_name       = "ray-platform"
 cluster_version    = "1.31"
 vpc_id             = "vpc-0123456789abcdef0"

@@ -84,7 +84,7 @@ When diagnosing an issue with the cluster or pipeline, run the diagnostic script
      ```bash
      kubectl get sa ray-pipeline-sa -n ray-workloads -o yaml
      ```
-     Must contain `eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/ray-platform-dev-ray-pipeline-irsa`.
+     Must contain `eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/ray-platform-test-ray-pipeline-irsa`.
   2. Verify the projected token mount inside the pod:
      ```bash
      kubectl exec -it <pod-name> -n ray-workloads -- env | grep AWS_

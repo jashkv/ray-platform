@@ -34,9 +34,9 @@ The Ray pipeline ServiceAccount (`ray-pipeline-sa`) is bound to an IAM Role via 
 ```
 
 ### Least-Privilege Permissions Matrix
-- **Amazon S3:** Scoped exclusively to `arn:aws:s3:::ray-platform-dev-data-*/*`.
+- **Amazon S3:** Scoped exclusively to `arn:aws:s3:::ray-platform-test-data-*/*`.
 - **AWS Glue:** Scoped to `corporate_data_db` and tables therein.
-- **DynamoDB:** Scoped strictly to `ray-platform-dev-processing-ledger`.
+- **DynamoDB:** Scoped strictly to `ray-platform-test-processing-ledger`.
 - **AWS KMS:** Scoped to `arn:aws:kms:us-east-1:<ACCOUNT_ID>:key/<DATA_KEY_ID>`.
 
 ---

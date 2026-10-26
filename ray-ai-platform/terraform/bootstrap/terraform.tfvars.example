@@ -1,5 +1,5 @@
 aws_region   = "us-east-1"
-environment  = "dev"
+environment  = "test"
 project_name = "ray-platform"
 tags = {
   CostCenter = "AI-Platform"

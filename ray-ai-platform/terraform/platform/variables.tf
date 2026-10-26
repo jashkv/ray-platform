@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Deployment environment"
+  description = "Deployment environment (e.g. test)"
   type        = string
-  default     = "dev"
+  default     = "test"
 }
 
 variable "project_name" {
@@ -25,7 +25,7 @@ variable "github_repository" {
 variable "eks_cluster_arn" {
   description = "ARN of the EKS cluster"
   type        = string
-  default     = "arn:aws:eks:us-east-1:123456789012:cluster/ray-platform-dev-eks"
+  default     = "arn:aws:eks:us-east-1:123456789012:cluster/ray-platform-test-eks"
 }
 
 variable "tags" {

@@ -36,7 +36,7 @@ Key strengths:
 | **SEC-01** | **Medium** | `kubernetes/observability/ingress-auth.yaml` | Ray Dashboard web UI exposes cluster control interfaces. | Potential unauthenticated cluster code execution if exposed publicly. | Configured ClusterIP default + internal ALB with Cognito OAuth2 authentication. | **RESOLVED** |
 | **REL-01** | **Medium** | `kubernetes/ray/ray-cluster.yaml` | Spot worker node preemption could terminate the stateful `EntityResolver` actor. | Interruption causes actor state re-initialization. | Declared custom resource `entity_resolver_slot: 1` + On-Demand worker fallback pool. | **RESOLVED** |
 | **DAT-01** | **Low** | `application/src/entity_resolver.py` | Ambiguous name matches with conflicting countries could merge separate legal entities. | Registry data corruption across multinational subsidiaries. | Implemented ambiguity threshold (0.65-0.87) that quarantines uncertain matches. | **RESOLVED** |
-| **OPS-01** | **Low** | `terraform/network/main.tf` | Single NAT Gateway in dev vs Multi-NAT in prod. | Single AZ NAT failure could isolate private worker nodes. | Parameterized `enable_single_nat_gateway` (true in dev to save \$65/mo; false in prod). | **RESOLVED** |
+| **OPS-01** | **Low** | `terraform/network/main.tf` | Single NAT Gateway configuration in test environment. | Single AZ NAT failure could isolate private worker nodes. | Parameterized `enable_single_nat_gateway` (true in test to save \$65/mo; togglable for multi-AZ redundancy). | **RESOLVED** |
 
 ---
 
@@ -68,7 +68,7 @@ All 26 explicit assignment requirements have been verified and validated program
    - On-Demand Head Node (`m6i.xlarge`): \$140.16/month
    - Spot Worker Pool (1 node average, diversified): ~\$42.00/month
    - Storage (S3, Glue, DynamoDB): ~\$5.00/month
-   - **Total Estimated Operating Cost:** ~\$292.50/month in continuous dev operation.
+   - **Total Estimated Operating Cost:** ~\$292.50/month in continuous test environment operation.
 2. **Cost Optimization Protections:**
    - Worker group autoscales to 0 when no RayJobs are active.
    - S3 Lifecycle policy cleans quarantine and manifest history after 30-90 days.

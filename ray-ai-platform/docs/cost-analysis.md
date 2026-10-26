@@ -5,17 +5,17 @@
 This document provides a realistic cost model for operating the **Distributed AI Foundation** platform in AWS (`us-east-1`). The platform implements four primary cost-reduction strategies:
 1. **Spot Instance Diversification:** Achieves a **$\sim 70\%$ compute cost reduction** for data processing and model training workers.
 2. **S3 Gateway VPC Endpoint:** Eliminates all NAT Gateway data processing fees (\$0.045/GB) for petabyte-scale lakehouse transactions.
-3. **Single NAT Gateway Architecture for Development:** Reduces baseline networking overhead by $66\%$ (\$65/month savings).
+3. **Single NAT Gateway Architecture for Test Environment:** Reduces baseline networking overhead by $66\%$ (\$65/month savings).
 4. **Elastic Worker Autoscaling:** Worker node groups autoscale down to **0 nodes** during idle periods.
 
 ---
 
-## 2. Monthly Cost Breakdown (Development Environment)
+## 2. Monthly Cost Breakdown (Test Environment)
 
 | Component | AWS Resource | Sizing & Configuration | Hourly Cost | Monthly Cost (730 hrs) | Cost Justification |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Control Plane** | Amazon EKS Cluster | Kubernetes v1.31 Managed Control Plane | \$0.1000 | \$73.00 | Mandatory for managed Kubernetes orchestration and KubeRay operator. |
-| **Networking** | AWS NAT Gateway | Single NAT Gateway (Dev configuration) | \$0.0450 | \$32.85 | Enables private nodes to reach ECR, GitHub, and external repositories. |
+| **Networking** | AWS NAT Gateway | Single NAT Gateway (Test configuration) | \$0.0450 | \$32.85 | Enables private nodes to reach ECR, GitHub, and external repositories. |
 | **Networking** | S3 Gateway Endpoint | Gateway Endpoint (`com.amazonaws.us-east-1.s3`) | **\$0.0000** | **\$0.00** | Direct private S3 traffic. **Saves ~\$45 per TB** transferred. |
 | **System Compute** | On-Demand Node | 1 $\times$ `m6i.xlarge` (4 vCPU, 16GiB RAM) | \$0.1920 | \$140.16 | Hosts Ray Head (GCS/Dashboard), CoreDNS, KubeRay, Prometheus. Guarantees 100% control stability. |
 | **Worker Compute** | EC2 Spot Worker Pool | 1 $\times$ `m6i.xlarge` Spot (average 8 hrs/day) | \$0.0576 | \$14.00 | 70% discount vs On-Demand. Scales to 0 when idle. |
@@ -23,7 +23,7 @@ This document provides a realistic cost model for operating the **Distributed AI
 | **Metadata Catalog** | AWS Glue Data Catalog | $< 100,000$ objects & 1 database | Free Tier / \$0.00 | \$0.00 | Free up to 1 million stored objects and requests. |
 | **State Locking** | Amazon DynamoDB | 2 tables, Pay-Per-Request (On-Demand) | $<\$0.01$ | \$0.50 | State locking and processing claims ledger. |
 | **Observability** | CloudWatch Logs | 10 GB ingestion per month | \$0.50 / GB | \$5.00 | Centralized audit and container log retention. |
-| **TOTAL (Dev)** | | | | **~\$266.66 / month** | Complete production-like distributed AI environment. |
+| **TOTAL (Test)** | | | | **~\$266.66 / month** | Complete distributed AI test environment. |
 
 ---
 

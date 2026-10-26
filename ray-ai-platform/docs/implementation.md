@@ -269,7 +269,7 @@ When records from multiple sources resolve to the same canonical entity:
 2. **Step 2 — Bootstrap State Backend:** Run `terraform init && terraform apply` in `terraform/bootstrap/`.
 3. **Step 3 — Deploy Networking:** Run `terraform init -backend-config=backend.hcl && terraform apply` in `terraform/network/`.
 4. **Step 4 — Provision EKS Cluster:** Deploy EKS v1.31, Head pool, and Spot worker pool via `terraform/eks/`.
-5. **Step 5 — Configure Kubeconfig:** Run `aws eks update-kubeconfig --region <region> --name ray-platform-prod`.
+5. **Step 5 — Configure Kubeconfig:** Run `aws eks update-kubeconfig --region <region> --name ray-platform-test-eks`.
 6. **Step 6 — Provision Lakehouse & IAM:** Deploy S3 lakehouse, Glue database, DynamoDB ledger, and IRSA role via `terraform/data/`.
 7. **Step 7 — Deploy ECR & CI/CD Roles:** Deploy ECR and GitHub Actions OIDC provider via `terraform/platform/`.
 8. **Step 8 — Install KubeRay Operator:** Install KubeRay via Helm using `helm/kuberay-operator/values.yaml`.

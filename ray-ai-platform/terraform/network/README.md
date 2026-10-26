@@ -16,8 +16,8 @@ This layer provisions the networking topology required for the EKS cluster and R
 - **Throughput:** Unlimited wire-speed communication between Ray workers reading CSV files, writing Iceberg data files, and saving ML models to Amazon S3. Without this, petabyte-scale data flows would route through the NAT Gateway at \$0.045/GB data processing cost.
 
 ### 3. NAT Gateway Strategy
-- In `dev`, `enable_single_nat_gateway = true` uses 1 NAT Gateway (~$32.40/month baseline) rather than 3 NAT Gateways (~$97.20/month baseline).
-- In `prod`, `enable_single_nat_gateway = false` can be toggled to deploy 1 NAT Gateway per AZ for maximum fault tolerance.
+- In `test`, `enable_single_nat_gateway = true` uses 1 NAT Gateway (~$32.40/month baseline) rather than 3 NAT Gateways (~$97.20/month baseline), reducing cloud networking charges by 66%.
+- Can be toggled (`enable_single_nat_gateway = false`) if multi-AZ NAT redundancy across all AZs is required.
 
 ### 4. Kubernetes Subnet Tags
 - Public subnets tagged with `kubernetes.io/role/elb = 1`.

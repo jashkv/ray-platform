@@ -227,7 +227,7 @@ metadata:
   name: corporate-data-cluster
   namespace: ray-workloads
   labels:
-    environment: prod
+    environment: test
     app.kubernetes.io/name: kuberay
 spec:
   rayVersion: "2.40.0"
@@ -571,11 +571,11 @@ Ray pods authenticate to AWS services via IAM Roles for Service Accounts (IRSA).
 
 ### 11.2 Secure Ray Dashboard Access
 The Ray Dashboard is bound to `ClusterIP` on port `8265` and is never exposed publicly without authentication:
-- **Development Access:** Via `kubectl port-forward`:
+- **Direct Access:** Via `kubectl port-forward`:
   ```bash
   kubectl port-forward svc/corporate-data-cluster-head-svc 8265:8265 -n ray-workloads
   ```
-- **Production Ingress:** Configured with an AWS Application Load Balancer and AWS Cognito OAuth2 proxy ([`kubernetes/observability/ingress-auth.yaml`](file:///ray-ai-platform/kubernetes/observability/ingress-auth.yaml)).
+- **Authenticated Ingress:** Configured with an AWS Application Load Balancer and AWS Cognito OAuth2 proxy ([`kubernetes/observability/ingress-auth.yaml`](file:///ray-ai-platform/kubernetes/observability/ingress-auth.yaml)).
 
 ---
 

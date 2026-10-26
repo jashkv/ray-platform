@@ -27,7 +27,7 @@ variable "cluster_name" {
 }
 
 variable "environment" {
-  description = "Environment name (e.g. dev, prod)"
+  description = "Environment name (e.g. test)"
   type        = string
 }
 
@@ -37,7 +37,7 @@ variable "project_name" {
 }
 
 variable "enable_single_nat_gateway" {
-  description = "Set to true to use a single NAT gateway to minimize AWS charges in dev environments"
+  description = "Set to true to use a single NAT gateway to minimize AWS charges in test environment"
   type        = bool
   default     = true
 }

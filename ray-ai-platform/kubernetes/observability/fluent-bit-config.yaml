@@ -4,7 +4,7 @@ metadata:
   name: fluent-bit-cluster-info
   namespace: ray-system
 data:
-  cluster.name: "ray-platform-dev-eks"
+  cluster.name: "ray-platform-test-eks"
   logs.region: "us-east-1"
   http.server: "On"
   http.port: "2020"

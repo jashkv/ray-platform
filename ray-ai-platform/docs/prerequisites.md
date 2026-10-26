@@ -370,7 +370,7 @@ plan; applying changes should follow the intended approval process.
 Choose a consistent naming convention before creating resources. At
 minimum, define:
 - Project identifier.
-- Environment (dev, test, or equivalent).
+- Environment (standardized as 'test').
 - Region.
 - Resource role/purpose.
 - Required ownership and cost tags.

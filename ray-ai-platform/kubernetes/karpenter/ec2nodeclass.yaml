@@ -9,8 +9,8 @@ spec:
   # IAM Role for provisioned nodes (managed via terraform/modules/karpenter)
   role: "ray-platform-test-eks-karpenter-node-role"
 
-  # Official Amazon Linux 2023 optimized EKS AMI
-  amiFamily: AL2023
+  # Ubuntu 22.04 / 24.04 LTS Optimized EKS AMI
+  amiFamily: Ubuntu
 
   # Subnet Discovery: Discovers private subnets tagged with karpenter.sh/discovery
   subnetSelectorTerms:
@@ -39,9 +39,9 @@ spec:
     httpPutResponseHopLimit: 2
     httpTokens: required
 
-  # Root Volume Block Device Mapping: 50 GiB gp3 with SSE-KMS encryption
+  # Root Volume Block Device Mapping: 50 GiB gp3 with SSE-KMS encryption (/dev/sda1 for Ubuntu)
   blockDeviceMappings:
-    - deviceName: /dev/xvda
+    - deviceName: /dev/sda1
       ebs:
         volumeSize: 50Gi
         volumeType: gp3

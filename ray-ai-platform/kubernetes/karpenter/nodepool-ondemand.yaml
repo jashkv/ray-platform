@@ -31,11 +31,11 @@ spec:
 
         - key: kubernetes.io/arch
           operator: In
-          values: ["amd64"]
+          values: ["arm64", "amd64"]
 
         - key: karpenter.k8s.aws/instance-family
           operator: In
-          values: ["m6i", "m5"]
+          values: ["m7g", "m6g", "m7a", "m6i"]
 
         - key: karpenter.k8s.aws/instance-size
           operator: In

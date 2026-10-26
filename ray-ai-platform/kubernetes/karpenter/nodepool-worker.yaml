@@ -31,15 +31,15 @@ spec:
           operator: In
           values: ["spot", "on-demand"]
 
-        # Architecture: 64-bit AMD
+        # Architecture: 64-bit ARM (AWS Graviton)
         - key: kubernetes.io/arch
           operator: In
-          values: ["amd64"]
+          values: ["arm64"]
 
-        # Instance Families: 4 diverse general-purpose/compute families across 3 AZs (12 capacity pools)
+        # Instance Families: AWS Graviton3 & Graviton2 families (m7g, m6g, c7g)
         - key: karpenter.k8s.aws/instance-family
           operator: In
-          values: ["m6i", "m5", "m5a", "m6a"]
+          values: ["m7g", "m6g", "c7g"]
 
         # Instance Sizes: Minimum xlarge (4 vCPU, 16Gi RAM) to fit 3 CPU / 12Gi RAM Ray worker pods
         - key: karpenter.k8s.aws/instance-size
@@ -49,7 +49,7 @@ spec:
         # Exclude legacy older generation instance types
         - key: karpenter.k8s.aws/instance-generation
           operator: Gt
-          values: ["4"]
+          values: ["5"]
 
   # Maximum Cluster Compute Guardrails (Prevents runaway cloud expenditure)
   limits:

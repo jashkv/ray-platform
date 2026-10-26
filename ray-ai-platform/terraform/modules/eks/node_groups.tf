@@ -9,6 +9,7 @@ resource "aws_eks_node_group" "head_system" {
 
   capacity_type  = "ON_DEMAND"
   instance_types = var.head_node_instance_types
+  ami_type       = var.head_node_ami_type
 
   scaling_config {
     desired_size = 1
@@ -51,6 +52,7 @@ resource "aws_eks_node_group" "worker_spot" {
 
   capacity_type  = "SPOT"
   instance_types = var.worker_spot_instance_types
+  ami_type       = var.head_node_ami_type
 
   scaling_config {
     desired_size = var.worker_desired_size
@@ -102,6 +104,7 @@ resource "aws_eks_node_group" "worker_ondemand_fallback" {
 
   capacity_type  = "ON_DEMAND"
   instance_types = var.head_node_instance_types
+  ami_type       = var.head_node_ami_type
 
   scaling_config {
     desired_size = 0

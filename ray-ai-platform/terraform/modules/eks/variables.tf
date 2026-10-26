@@ -48,15 +48,21 @@ variable "public_access_cidrs" {
 }
 
 variable "head_node_instance_types" {
-  description = "Instance types for On-Demand Head/System node group"
+  description = "Instance types for On-Demand Head/System node group (Graviton3 ARM64)"
   type        = list(string)
-  default     = ["m6i.xlarge"]
+  default     = ["m7g.xlarge"]
+}
+
+variable "head_node_ami_type" {
+  description = "AMI type for On-Demand Head/System node group"
+  type        = string
+  default     = "AL2023_ARM_64_STANDARD"
 }
 
 variable "worker_spot_instance_types" {
-  description = "Diversified instance types for Spot worker node group"
+  description = "Diversified Graviton instance types for Spot worker node group"
   type        = list(string)
-  default     = ["m6i.xlarge", "m5.xlarge", "m5a.xlarge", "m6a.xlarge"]
+  default     = ["m7g.xlarge", "m6g.xlarge", "m7g.2xlarge", "m6g.2xlarge"]
 }
 
 variable "worker_min_size" {

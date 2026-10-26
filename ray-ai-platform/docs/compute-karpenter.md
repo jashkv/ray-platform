@@ -115,16 +115,17 @@ Karpenter is provisioned modularly via [`terraform/modules/karpenter`](file:///r
 
 ### 4.1 `EC2NodeClass` (`kubernetes/karpenter/ec2nodeclass.yaml`)
 Configures AWS-level launch specifications:
-- **AMI Family:** `AL2023` (Amazon Linux 2023, official EKS optimized).
+- **AMI Family:** `Ubuntu` (Official Canonical EKS optimized LTS AMI for ARM64/Graviton).
 - **Subnet Discovery:** Discovers private subnets tagged with `karpenter.sh/discovery: ray-platform-test-eks` and `SubnetType: Private`.
 - **Security Group Discovery:** Matches security groups tagged with `karpenter.sh/discovery: ray-platform-test-eks`.
 - **IMDSv2 Enforced:** `httpTokens: required`, `httpPutResponseHopLimit: 2` (prevents SSRF credential theft).
-- **Storage:** 50 GiB `gp3` root volume with EBS encryption enabled.
+- **Storage:** 50 GiB `gp3` root volume (`/dev/sda1` for Ubuntu) with SSE-KMS EBS encryption.
 
 ### 4.2 `NodePool` (`kubernetes/karpenter/nodepool-worker.yaml`)
 Configures scheduling, capacity selection, and disruption:
+- **Architecture:** `["arm64"]` (AWS Graviton-first architecture for 40-50% compute cost savings).
 - **Capacity Types:** `["spot", "on-demand"]` (evaluates Spot first, falls back to On-Demand if Spot pools are exhausted).
-- **Instance Families:** `["m6i", "m5", "m5a", "m6a"]` across 3 Availability Zones (12 distinct Spot capacity pools).
+- **Instance Families:** `["m7g", "m6g", "c7g"]` across 3 Availability Zones (24+ distinct Graviton Spot capacity pools).
 - **Instance Sizes:** `["xlarge", "2xlarge", "4xlarge"]` (guarantees sufficient memory for 12GiB Ray workers).
 - **Taints:** `key: workload-role`, `value: ray-worker`, `effect: NoSchedule`.
 - **Cluster Guardrails:** `limits.cpu: 64`, `limits.memory: 256Gi` (caps maximum expenditure).

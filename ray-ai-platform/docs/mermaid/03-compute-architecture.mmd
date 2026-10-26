@@ -12,7 +12,7 @@ flowchart TD
 
         subgraph Tier1_System["Tier 1: Stable System Node Group (EKS Managed - On-Demand)"]
             direction TB
-            subgraph Node_System["EC2 Instance: m5.large (On-Demand | us-east-1a)"]
+            subgraph Node_System["EC2 Instance: m7g.xlarge (Graviton3 On-Demand | us-east-1a)"]
                 SYS_LABELS["Labels: workload-role = ray-head-system\nTaints: None"]
                 
                 subgraph SysComponents["Cluster System Services"]
@@ -45,12 +45,12 @@ flowchart TD
             subgraph NodePool_Spot["NodePool: ray-worker-spot (Weight: 100)"]
                 SPOT_SPECS["Taints: workload-role = ray-worker:NoSchedule\nConsolidation: WhenEmptyOrUnderutilized (60s)\nDisruption Budget: 20%\nLimits: 64 vCPUs / 256 GiB RAM"]
                 
-                subgraph DiversifiedPools["Diversified EC2 Spot Instances (3 AZs x 8 Types = 24 Pools)"]
+                subgraph DiversifiedPools["Diversified Graviton EC2 Spot Instances (3 AZs x 8 Types = 24 Pools)"]
                     direction LR
-                    INSTANCE_M6I["m6i.xlarge / 2xlarge\n(Intel Ice Lake)"]
-                    INSTANCE_M5["m5.xlarge / 2xlarge\n(Intel Xeon)"]
-                    INSTANCE_M5A["m5a.xlarge / 2xlarge\n(AMD EPYC)"]
-                    INSTANCE_M6A["m6a.xlarge / 2xlarge\n(AMD Milan)"]
+                    INSTANCE_M7G["m7g.xlarge / 2xlarge\n(AWS Graviton3 ARM64)"]
+                    INSTANCE_M6G["m6g.xlarge / 2xlarge\n(AWS Graviton2 ARM64)"]
+                    INSTANCE_C7G["c7g.2xlarge / 4xlarge\n(Compute Graviton3)"]
+                    INSTANCE_R7G["r7g.xlarge / 2xlarge\n(Memory Graviton3)"]
                 end
 
                 subgraph WorkerPods["Ray Worker Pods (0 to 8 Replicas)"]

@@ -382,7 +382,7 @@ tf-destroy-all: ## Teardown all cloud infrastructure in reverse dependency order
 # ==============================================================================
 # Group 10: Docker Container Operations
 # ==============================================================================
-.PHONY: docker-login docker-build docker-push docker-build-push docker-run-local
+.PHONY: docker-login docker-build docker-build-multiarch docker-push docker-build-push docker-run-local
 
 docker-login: ## Authenticate Docker CLI with Amazon ECR
 	@$(LOG_INFO) "Authenticating Docker with Amazon ECR $(ECR_REGISTRY)..."
@@ -393,6 +393,11 @@ docker-build: ## Build application container image with commit SHA tag
 	@$(LOG_INFO) "Building Docker image $(IMAGE_URI)..."
 	@cd $(RAY_DIR) && $(DOCKER) build -f application/Dockerfile -t $(IMAGE_URI) -t $(IMAGE_LATEST) .
 	@$(LOG_OK) "Docker image build successful."
+
+docker-build-multiarch: docker-login ## Build multi-architecture (linux/amd64 + linux/arm64) image for Graviton and push to ECR
+	@$(LOG_INFO) "Building multi-platform Docker image (amd64 + arm64) $(IMAGE_URI)..."
+	@cd $(RAY_DIR) && $(DOCKER) buildx build --platform linux/amd64,linux/arm64 -f application/Dockerfile -t $(IMAGE_URI) -t $(IMAGE_LATEST) --push .
+	@$(LOG_OK) "Multi-platform Docker images pushed to ECR successfully."
 
 docker-push: docker-login ## Push application container image to Amazon ECR
 	@$(LOG_INFO) "Pushing Docker images to $(ECR_REGISTRY)..."

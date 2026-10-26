@@ -1,9 +1,9 @@
 flowchart TD
     %% Internal Topology of a Karpenter-Provisioned Ray Worker Node
-    subgraph Host["AWS EC2 Spot Host (e.g., m6i.xlarge / m6i.2xlarge)"]
+    subgraph Host["AWS EC2 Graviton Spot Host (e.g., m7g.xlarge / m7g.2xlarge)"]
         direction TB
 
-        subgraph OS_Layer["Host Operating System: Amazon Linux 2023 (AL2023)"]
+        subgraph OS_Layer["Host Operating System: Ubuntu Linux (EKS Optimized LTS)"]
             KERNEL["Linux Kernel 6.1 (cgroups v2 enabled)"]
             IMDS["IMDSv2 (Enforced Hop Limit: 1)"]
             EBS_DISK["EBS Volume: 50 GiB gp3 (AWS KMS Encrypted)"]

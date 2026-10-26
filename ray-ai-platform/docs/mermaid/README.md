@@ -245,7 +245,7 @@ flowchart TD
 
         subgraph Tier1_System["Tier 1: Stable System Node Group (EKS Managed - On-Demand)"]
             direction TB
-            subgraph Node_System["EC2 Instance: m5.large (On-Demand | us-east-1a)"]
+            subgraph Node_System["EC2 Instance: m7g.xlarge (Graviton3 On-Demand | us-east-1a)"]
                 SYS_LABELS["Labels: workload-role = ray-head-system\nTaints: None"]
                 
                 subgraph SysComponents["Cluster System Services"]
@@ -278,12 +278,12 @@ flowchart TD
             subgraph NodePool_Spot["NodePool: ray-worker-spot (Weight: 100)"]
                 SPOT_SPECS["Taints: workload-role = ray-worker:NoSchedule\nConsolidation: WhenEmptyOrUnderutilized (60s)\nDisruption Budget: 20%\nLimits: 64 vCPUs / 256 GiB RAM"]
                 
-                subgraph DiversifiedPools["Diversified EC2 Spot Instances (3 AZs x 8 Types = 24 Pools)"]
+                subgraph DiversifiedPools["Diversified Graviton EC2 Spot Instances (3 AZs x 8 Types = 24 Pools)"]
                     direction LR
-                    INSTANCE_M6I["m6i.xlarge / 2xlarge\n(Intel Ice Lake)"]
-                    INSTANCE_M5["m5.xlarge / 2xlarge\n(Intel Xeon)"]
-                    INSTANCE_M5A["m5a.xlarge / 2xlarge\n(AMD EPYC)"]
-                    INSTANCE_M6A["m6a.xlarge / 2xlarge\n(AMD Milan)"]
+                    INSTANCE_M7G["m7g.xlarge / 2xlarge\n(AWS Graviton3 ARM64)"]
+                    INSTANCE_M6G["m6g.xlarge / 2xlarge\n(AWS Graviton2 ARM64)"]
+                    INSTANCE_C7G["c7g.2xlarge / 4xlarge\n(Compute Graviton3)"]
+                    INSTANCE_R7G["r7g.xlarge / 2xlarge\n(Memory Graviton3)"]
                 end
 
                 subgraph WorkerPods["Ray Worker Pods (0 to 8 Replicas)"]
@@ -481,10 +481,10 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    subgraph Host["AWS EC2 Spot Host (e.g., m6i.xlarge / m6i.2xlarge)"]
+    subgraph Host["AWS EC2 Graviton Spot Host (e.g., m7g.xlarge / m7g.2xlarge)"]
         direction TB
 
-        subgraph OS_Layer["Host Operating System: Amazon Linux 2023 (AL2023)"]
+        subgraph OS_Layer["Host Operating System: Ubuntu Linux (EKS Optimized LTS)"]
             KERNEL["Linux Kernel 6.1 (cgroups v2 enabled)"]
             IMDS["IMDSv2 (Enforced Hop Limit: 1)"]
             EBS_DISK["EBS Volume: 50 GiB gp3 (AWS KMS Encrypted)"]

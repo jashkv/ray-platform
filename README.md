@@ -83,7 +83,7 @@ flowchart TD
     RAYHEAD --> ALB
 ```
 
-For complete technical specifications, see [docs/architecture.md](file:///docs/architecture.md).
+For complete technical specifications, see [ray-ai-platform/docs/architecture.md](file:///ray-ai-platform/docs/architecture.md).
 
 ---
 
@@ -110,10 +110,6 @@ For complete technical specifications, see [docs/architecture.md](file:///docs/a
 assignment-1/
 ├── Makefile                           # Production automation & orchestration command center
 ├── README.md                          # Master project documentation (this file)
-├── docs/                              # Architecture & implementation guides
-│   ├── architecture.md                # Comprehensive unified architecture blueprint
-│   ├── implementation.md              # Complete 14-phase implementation plan & runbook
-│   └── requirment.md                  # Original prompt requirements
 │
 └── ray-ai-platform/                   # PLATFORM IMPLEMENTATION ROOT
     ├── REQUIREMENTS_TRACEABILITY.md   # Requirement-to-test traceability matrix (100% PASS)
@@ -166,13 +162,18 @@ assignment-1/
     │   ├── build_image.sh             # Container image build and vulnerability check
     │   └── check_ray_health.sh        # Cluster health, worker status, and actor placement check
     │
-    └── docs/                          # Detailed Operational Guides
+    └── docs/                          # Complete Platform Documentation Suite
+        ├── architecture.md            # Comprehensive unified architecture blueprint
+        ├── implementation.md          # Complete 14-phase implementation plan & runbook
         ├── architecture-review.md     # Architectural scorecard & trade-off review
         ├── deployment.md              # Cloud deployment and teardown runbook
         ├── security.md                # Zero-Trust security, IRSA, and credential policy
         ├── troubleshooting.md         # Operational playbooks, failure modes, and OOM triage
         ├── cost-analysis.md           # AWS cost model, Spot savings, and budget justification
-        └── serverless-alternative.md  # Serverless architecture evaluation & cost comparison
+        ├── serverless-alternative.md  # Serverless architecture evaluation & cost comparison
+        ├── prerequisites.md           # Detailed installation and dependency setup guide
+        ├── requirment.md              # Original prompt requirements
+        └── install.sh                 # Environment setup script
 ```
 
 ---
@@ -416,15 +417,17 @@ Review the comprehensive, itemized verification proofs in [ray-ai-platform/REQUI
 
 | Document | Description |
 | :--- | :--- |
-| [docs/architecture.md](file:///docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
-| [docs/implementation.md](file:///docs/implementation.md) | Complete 14-phase engineering roadmap, deliverables, and validation criteria. |
-| [REQUIREMENTS_TRACEABILITY.md](file:///ray-ai-platform/REQUIREMENTS_TRACEABILITY.md) | Requirement-by-requirement audit matrix with test evidence. |
-| [docs/architecture-review.md](file:///ray-ai-platform/docs/architecture-review.md) | Architectural scorecard against cloud engineering best practices. |
-| [docs/deployment.md](file:///ray-ai-platform/docs/deployment.md) | Step-by-step AWS provisioning, testing, and teardown runbook. |
-| [docs/security.md](file:///ray-ai-platform/docs/security.md) | Zero-trust IAM policies, IRSA, network isolation, and encryption. |
-| [docs/troubleshooting.md](file:///ray-ai-platform/docs/troubleshooting.md) | Triage playbooks for Ray OOM, Spot interruptions, and scheduling failures. |
-| [docs/cost-analysis.md](file:///ray-ai-platform/docs/cost-analysis.md) | Component-by-component AWS cost analysis and spot savings calculations. |
-| [docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md) | AWS Step Functions + EMR Serverless alternative comparison. |
+| [ray-ai-platform/docs/architecture.md](file:///ray-ai-platform/docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
+| [ray-ai-platform/docs/implementation.md](file:///ray-ai-platform/docs/implementation.md) | Complete 14-phase engineering roadmap, deliverables, and validation criteria. |
+| [ray-ai-platform/REQUIREMENTS_TRACEABILITY.md](file:///ray-ai-platform/REQUIREMENTS_TRACEABILITY.md) | Requirement-by-requirement audit matrix with test evidence. |
+| [ray-ai-platform/docs/architecture-review.md](file:///ray-ai-platform/docs/architecture-review.md) | Architectural scorecard against cloud engineering best practices. |
+| [ray-ai-platform/docs/deployment.md](file:///ray-ai-platform/docs/deployment.md) | Step-by-step AWS provisioning, testing, and teardown runbook. |
+| [ray-ai-platform/docs/security.md](file:///ray-ai-platform/docs/security.md) | Zero-trust IAM policies, IRSA, network isolation, and encryption. |
+| [ray-ai-platform/docs/troubleshooting.md](file:///ray-ai-platform/docs/troubleshooting.md) | Triage playbooks for Ray OOM, Spot interruptions, and scheduling failures. |
+| [ray-ai-platform/docs/cost-analysis.md](file:///ray-ai-platform/docs/cost-analysis.md) | Component-by-component AWS cost analysis and spot savings calculations. |
+| [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md) | AWS Step Functions + EMR Serverless alternative comparison. |
+| [ray-ai-platform/docs/prerequisites.md](file:///ray-ai-platform/docs/prerequisites.md) | Detailed installation and dependency setup guide. |
+| [ray-ai-platform/docs/requirment.md](file:///ray-ai-platform/docs/requirment.md) | Original prompt and assignment specification. |
 
 ---
 

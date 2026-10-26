@@ -4,7 +4,7 @@
 - **Cloud Provider:** Amazon Web Services (AWS)
 - **Runtime Compute:** Amazon EKS (Kubernetes `1.31`) + KubeRay (`v1.2.2`) + Ray (`2.40.0`)
 - **Lakehouse Storage:** Apache Iceberg (Format v2) with AWS Glue Data Catalog & Amazon S3
-- **Related Design:** [`docs/architecture.md`](file:///docs/architecture.md)
+- **Related Design:** [`ray-ai-platform/docs/architecture.md`](file:///ray-ai-platform/docs/architecture.md)
 - **Document Version:** 3.0 (Comprehensive Merged Reference)
 - **Document Purpose:** Defines the complete ordered implementation plan, execution dependencies, deliverables per phase, schema normalization contracts, failure handling matrices, deployment runbooks, and validation checklists for **The Distributed AI Foundation**.
 
@@ -12,7 +12,7 @@
 
 ## 1. Purpose & Implementation Principles
 
-This guide operationalizes [`docs/architecture.md`](file:///docs/architecture.md) into a disciplined, 14-phase implementation sequence. It details both the concrete code artifacts created in this repository and the operational procedures required to deploy, validate, and maintain the platform.
+This guide operationalizes [`ray-ai-platform/docs/architecture.md`](file:///ray-ai-platform/docs/architecture.md) into a disciplined, 14-phase implementation sequence. It details both the concrete code artifacts created in this repository and the operational procedures required to deploy, validate, and maintain the platform.
 
 ### Core Implementation Principles
 
@@ -193,8 +193,8 @@ flowchart TD
 - **Dependencies:** Phase 12.
 - **Deliverables:**
   - Master documentation: [`README.md`](file:///README.md).
-  - Unified Architecture Blueprint: [`docs/architecture.md`](file:///docs/architecture.md).
-  - Implementation Guide: [`docs/implementation.md`](file:///docs/implementation.md) (this document).
+  - Unified Architecture Blueprint: [`ray-ai-platform/docs/architecture.md`](file:///ray-ai-platform/docs/architecture.md).
+  - Implementation Guide: [`ray-ai-platform/docs/implementation.md`](file:///ray-ai-platform/docs/implementation.md) (this document).
   - Operational Guides: [`docs/deployment.md`](file:///ray-ai-platform/docs/deployment.md), [`docs/security.md`](file:///ray-ai-platform/docs/security.md), [`docs/troubleshooting.md`](file:///ray-ai-platform/docs/troubleshooting.md), [`docs/cost-analysis.md`](file:///ray-ai-platform/docs/cost-analysis.md), [`docs/serverless-alternative.md`](file:///ray-ai-platform/docs/serverless-alternative.md), [`docs/architecture-review.md`](file:///ray-ai-platform/docs/architecture-review.md).
 - **Validation Exit Condition:** Cross-documentation coherence check passed; single source of truth established across all topics.
 
@@ -277,7 +277,7 @@ When records from multiple sources resolve to the same canonical entity:
 10. **Step 10 — Build & Push Container Image:** Build and tag `ray-data-pipeline:latest` using `scripts/build_image.sh` and push to ECR.
 11. **Step 11 — Submit Distributed RayJob:** Submit `kubernetes/jobs/ray-job.yaml` and stream logs until completion.
 12. **Step 12 — Verify Outputs & Table:** Inspect committed Iceberg snapshots and model metrics using `scripts/verify_iceberg_table.py`.
-13. **Step 13 — Review Costs & Teardown:** Follow the reverse teardown procedure in [`docs/deployment.md`](file:///ray-ai-platform/docs/deployment.md) to cleanly destroy billable resources.
+13. **Step 13 — Review Costs & Teardown:** Follow the reverse teardown procedure in [`ray-ai-platform/docs/deployment.md`](file:///ray-ai-platform/docs/deployment.md) to cleanly destroy billable resources.
 
 ---
 

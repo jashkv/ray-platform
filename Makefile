@@ -41,7 +41,7 @@ TF_DIR               := $(RAY_DIR)/terraform
 K8S_DIR              := $(RAY_DIR)/kubernetes
 APP_DIR              := $(RAY_DIR)/application
 SCRIPTS_DIR          := $(RAY_DIR)/scripts
-DOCS_DIR             := $(ROOT_DIR)/docs
+DOCS_DIR             := $(RAY_DIR)/docs
 VENV_DIR             := $(RAY_DIR)/.venv
 
 # Python & Tool Binaries
@@ -131,11 +131,11 @@ verify-tools: ## Verify local CLI dependencies and print status audit
 		if command -v $$tool >/dev/null 2>&1; then \
 			printf "  $(GREEN)[OK]$(RESET) %-12s installed: %s\n" "$$tool" "$$(command -v $$tool)"; \
 		else \
-			printf "  $(YELLOW)[OPTIONAL]$(RESET) %-12s not installed locally (Required for cluster/container operations; see docs/prerequisites.md)\n" "$$tool"; \
+			printf "  $(YELLOW)[OPTIONAL]$(RESET) %-12s not installed locally (Required for cluster/container operations; see ray-ai-platform/docs/prerequisites.md)\n" "$$tool"; \
 		fi; \
 	done; \
 	if [ $$MISSING -ne 0 ]; then \
-		$(LOG_ERR) "One or more core required tools are missing. Check docs/prerequisites.md."; exit 1; \
+		$(LOG_ERR) "One or more core required tools are missing. Check ray-ai-platform/docs/prerequisites.md."; exit 1; \
 	fi
 	@$(LOG_OK) "Core baseline tool verification passed."
 

@@ -14,3 +14,17 @@ module "eks" {
   endpoint_public_access = true
   tags                   = var.tags
 }
+
+# ==============================================================================
+# Karpenter Infrastructure Integration
+# Controller IRSA, Node IAM Role, SQS Interruption Queue & EventBridge Rules
+# ==============================================================================
+module "karpenter" {
+  source = "../modules/karpenter"
+
+  cluster_name      = module.eks.cluster_name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  environment       = var.environment
+  tags              = var.tags
+}

@@ -1,0 +1,70 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: ray-workers
+  labels:
+    app.kubernetes.io/part-of: ray-platform
+    environment: test
+spec:
+  # Node template reference
+  template:
+    metadata:
+      labels:
+        workload-role: ray-worker
+        ray.io/node-type: worker
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: default
+
+      # Taints: Prevents non-Ray workloads (monitoring, ingress, CoreDNS) from occupying Ray worker compute
+      taints:
+        - key: workload-role
+          value: ray-worker
+          effect: NoSchedule
+
+      # Provisioning Requirements & Sizing Constraints
+      requirements:
+        # Prefer Spot instances for ~70% cost discount; allow On-Demand fallback if Spot is exhausted
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+
+        # Architecture: 64-bit AMD
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+
+        # Instance Families: 4 diverse general-purpose/compute families across 3 AZs (12 capacity pools)
+        - key: karpenter.k8s.aws/instance-family
+          operator: In
+          values: ["m6i", "m5", "m5a", "m6a"]
+
+        # Instance Sizes: Minimum xlarge (4 vCPU, 16Gi RAM) to fit 3 CPU / 12Gi RAM Ray worker pods
+        - key: karpenter.k8s.aws/instance-size
+          operator: In
+          values: ["xlarge", "2xlarge", "4xlarge"]
+
+        # Exclude legacy older generation instance types
+        - key: karpenter.k8s.aws/instance-generation
+          operator: Gt
+          values: ["4"]
+
+  # Maximum Cluster Compute Guardrails (Prevents runaway cloud expenditure)
+  limits:
+    cpu: "64"
+    memory: "256Gi"
+
+  # Disruption & Consolidation Policy
+  disruption:
+    # Consolidate underutilized nodes or terminate empty nodes when RayJobs complete
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 60s
+
+    # Disruption Budget: Maximum 20% of worker nodes disrupted concurrently
+    budgets:
+      - nodes: "20%"
+
+  # Node Lifetime: Gracefully recycle nodes after 14 days for security patch hygiene
+  weight: 50

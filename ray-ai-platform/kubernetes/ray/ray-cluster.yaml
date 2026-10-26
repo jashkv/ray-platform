@@ -9,6 +9,10 @@ metadata:
     app.kubernetes.io/part-of: ray-platform
 spec:
   rayVersion: "2.40.0"
+  enableInTreeAutoscaling: true
+  autoscalerOptions:
+    upscalingMode: Default
+    idleTimeoutSeconds: 60
   
   # ============================================================================
   # Head Group Spec (Dedicated On-Demand System Capacity)
@@ -79,8 +83,8 @@ spec:
   workerGroupSpecs:
     - groupName: ray-worker-group
       replicas: 1
-      minReplicas: 1
-      maxReplicas: 10
+      minReplicas: 0
+      maxReplicas: 8
       rayStartParams:
         block: "true"
         # 3.6 GiB dedicated to in-memory object store (Apache Arrow shared memory)

@@ -37,3 +37,26 @@ output "configure_kubectl_command" {
   description = "Command to configure local kubectl context"
   value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
 }
+
+# ==============================================================================
+# Karpenter Infrastructure Outputs
+# ==============================================================================
+output "karpenter_controller_role_arn" {
+  description = "IAM Role ARN for Karpenter Controller ServiceAccount (IRSA)"
+  value       = module.karpenter.controller_role_arn
+}
+
+output "karpenter_node_role_arn" {
+  description = "IAM Role ARN for nodes launched by Karpenter"
+  value       = module.karpenter.node_role_arn
+}
+
+output "karpenter_node_role_name" {
+  description = "IAM Role name for nodes launched by Karpenter (referenced in EC2NodeClass)"
+  value       = module.karpenter.node_role_name
+}
+
+output "karpenter_interruption_queue_name" {
+  description = "SQS queue name for Karpenter Spot interruption and rebalance events"
+  value       = module.karpenter.interruption_queue_name
+}

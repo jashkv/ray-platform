@@ -1,0 +1,51 @@
+# ==============================================================================
+# Karpenter Helm Values — Ray AI Platform on AWS
+# Chart: oci://public.ecr.aws/karpenter/karpenter (v1.0.8 / v1.2.x)
+# ==============================================================================
+
+image:
+  repository: public.ecr.aws/karpenter/controller
+  tag: v1.0.8
+
+# 1. Cluster & AWS Integration Settings
+settings:
+  clusterName: "ray-platform-test-eks"
+  clusterEndpoint: ""  # Discovered automatically or injected via Terraform
+  interruptionQueue: "ray-platform-test-eks-karpenter-interruption"
+  featureGates:
+    spotToSpotConsolidation: true
+
+# 2. ServiceAccount & IRSA Configuration
+serviceAccount:
+  create: true
+  name: "karpenter"
+  annotations:
+    # Populated from terraform/eks output: karpenter_controller_role_arn
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/ray-platform-test-eks-karpenter-controller"
+
+# 3. Controller Placement (STRICTLY on On-Demand System Nodes)
+# Karpenter controller MUST NEVER be scheduled onto nodes managed by Karpenter itself
+nodeSelector:
+  workload-role: "ray-head-system"
+
+tolerations: []
+
+# 4. Resource Allocation
+controller:
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# 5. High Availability & Replicas
+replicas: 2
+podDisruptionBudget:
+  maxUnavailable: 1
+
+# 6. Logging & Metrics
+logLevel: "info"
+metrics:
+  port: 8000

@@ -20,6 +20,7 @@ K8S_NAMESPACE_WORK   ?= ray-workloads
 RAY_CLUSTER_NAME     ?= corporate-data-cluster
 RAY_VERSION          ?= 2.40.0
 KUBERAY_VERSION      ?= v1.2.2
+KARPENTER_VERSION    ?= 1.0.8
 
 # Container & Registry
 ECR_REGISTRY         ?= $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
@@ -409,7 +410,7 @@ docker-run-local: docker-build ## Run container locally to verify runtime health
 # ==============================================================================
 # Group 11: Kubernetes & KubeRay Operator Deployment
 # ==============================================================================
-.PHONY: k8s-validate k8s-apply-namespaces k8s-apply-security helm-install-kuberay helm-uninstall-kuberay k8s-apply-raycluster k8s-delete-raycluster k8s-check-pods k8s-check-nodes
+.PHONY: k8s-validate k8s-apply-namespaces k8s-apply-security helm-install-kuberay helm-uninstall-kuberay helm-install-karpenter k8s-apply-karpenter karpenter-check karpenter-logs k8s-apply-raycluster k8s-delete-raycluster k8s-check-pods k8s-check-nodes
 
 k8s-validate: ## Lint and validate all Kubernetes and KubeRay YAML manifests
 	@$(LOG_INFO) "Validating Kubernetes and Helm manifests..."
@@ -438,6 +439,30 @@ helm-uninstall-kuberay: ## Uninstall KubeRay Operator
 	@$(LOG_INFO) "Uninstalling KubeRay Operator..."
 	@$(HELM) uninstall kuberay-operator --namespace $(K8S_NAMESPACE_SYSTEM)
 	@$(LOG_OK) "KubeRay Operator uninstalled."
+
+helm-install-karpenter: ## Install Karpenter controller via OCI Helm chart
+	@$(LOG_INFO) "Installing Karpenter controller $(KARPENTER_VERSION)..."
+	@$(HELM) upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter \
+		--version $(KARPENTER_VERSION) \
+		--namespace kube-system --create-namespace \
+		-f $(RAY_DIR)/helm/karpenter/values.yaml
+	@$(LOG_OK) "Karpenter controller deployed."
+
+k8s-apply-karpenter: ## Apply Karpenter EC2NodeClass and NodePool custom resources
+	@$(LOG_INFO) "Applying Karpenter EC2NodeClass and NodePools..."
+	@$(KUBECTL) apply -f $(K8S_DIR)/karpenter/
+	@$(LOG_OK) "Karpenter node provisioning policies applied."
+
+karpenter-check: ## Inspect Karpenter NodePools, NodeClasses, and controller pods
+	@printf "$(BOLD)=== Karpenter NodePools ===$(RESET)\n"
+	@$(KUBECTL) get nodepools.karpenter.sh 2>/dev/null || true
+	@printf "\n$(BOLD)=== Karpenter EC2NodeClasses ===$(RESET)\n"
+	@$(KUBECTL) get ec2nodeclasses.karpenter.k8s.aws 2>/dev/null || true
+	@printf "\n$(BOLD)=== Karpenter Controller Pods ===$(RESET)\n"
+	@$(KUBECTL) get pods -n kube-system -l app.kubernetes.io/name=karpenter -o wide
+
+karpenter-logs: ## Stream Karpenter controller logs
+	@$(KUBECTL) logs -n kube-system -l app.kubernetes.io/name=karpenter -c controller -f
 
 k8s-apply-raycluster: k8s-apply-security ## Deploy RayCluster CRD
 	@$(LOG_INFO) "Deploying RayCluster $(RAY_CLUSTER_NAME)..."

@@ -312,7 +312,32 @@ kubectl rollout status deployment/kuberay-operator -n ray-system --timeout=120s
 
 ---
 
-### Step 3: Launch RayCluster CRD
+### Step 3: Deploy Karpenter Controller & NodePools (`v1.0.8`)
+
+Deploy the Karpenter controller to the On-Demand system capacity and apply the worker NodePools:
+
+```bash
+# 1. Deploy Karpenter via Helm into kube-system
+helm upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter \
+  --version 1.0.8 \
+  --namespace kube-system \
+  --create-namespace \
+  -f helm/karpenter/values.yaml
+
+# 2. Verify Karpenter controller pod is running on the system node pool
+kubectl rollout status deployment/karpenter -n kube-system --timeout=120s
+
+# 3. Apply EC2NodeClass and Spot/On-Demand NodePools
+kubectl apply -f kubernetes/karpenter/
+
+# 4. Verify NodePool readiness
+kubectl get nodepools.karpenter.sh
+kubectl get ec2nodeclasses.karpenter.k8s.aws
+```
+
+---
+
+### Step 4: Launch RayCluster CRD
 
 Apply the production RayCluster custom resource specifying Head and Worker group sizing, 4Gi `/dev/shm` mounts, and `entity_resolver_slot: 1` custom resources:
 
@@ -330,7 +355,7 @@ kubectl get pods -n ray-workloads -o wide
 
 ---
 
-### Step 4: Submit Distributed RayJob Pipeline
+### Step 5: Submit Distributed RayJob Pipeline
 
 Execute the end-to-end distributed data engineering and ML training batch pipeline:
 

@@ -63,6 +63,19 @@ assert 'object-store-memory' in start_params, 'Worker must configure object-stor
 print('[+] Head/Worker nodeSelectors verified.')
 print('[+] /dev/shm memory mount verified.')
 print('[+] entity_resolver_slot custom resource verified.')
+
+# 3. Verify Karpenter NodePool & EC2NodeClass
+with open('kubernetes/karpenter/ec2nodeclass.yaml', 'r') as f:
+    nodeclass = yaml.safe_load(f)
+assert nodeclass['kind'] == 'EC2NodeClass', 'Must be EC2NodeClass'
+assert 'karpenter.sh/discovery' in nodeclass['spec']['tags'], 'EC2NodeClass must tag karpenter.sh/discovery'
+
+with open('kubernetes/karpenter/nodepool-worker.yaml', 'r') as f:
+    nodepool = yaml.safe_load(f)
+assert nodepool['kind'] == 'NodePool', 'Must be NodePool'
+assert nodepool['spec']['disruption']['consolidationPolicy'] == 'WhenEmptyOrUnderutilized', 'Must configure consolidation'
+
+print('[+] Karpenter EC2NodeClass & NodePool policies verified.')
 "
 
 echo "=== Kubernetes Manifest Validation Succeeded ==="

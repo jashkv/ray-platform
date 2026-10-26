@@ -194,6 +194,22 @@ The EKS cluster provisions two strictly separated capacity tiers across 3 Availa
 6. **Ray Train Checkpointing:**
    Distributed model training runs with `FailureConfig(max_failures=2)` and persists model checkpoints directly to S3 (`s3://<bucket>/models/checkpoints/`), resuming training automatically upon node reclamation.
 
+### 4.3 Two-Level Autoscaling: Karpenter + KubeRay Architecture
+
+To achieve true scale-to-zero compute efficiency while supporting bursty batch data processing workloads, the platform implements a coordinated two-level autoscaling architecture:
+
+1. **Level 1 — Workload Pod Scaling (KubeRay In-Tree Autoscaler):**
+   - Monitors Ray task queue pressure, actor requirements, and memory object store demand.
+   - Automatically scales worker pods from `minReplicas: 0` to `maxReplicas: 8`.
+   - Downscales pods to zero after `idleTimeoutSeconds: 60` of job inactivity.
+2. **Level 2 — Just-In-Time Node Scaling (Karpenter v1.0.8):**
+   - Observes pending Ray worker pods and directly evaluates their 3 CPU, 12Gi RAM, and 4Gi `/dev/shm` requirements.
+   - Bypasses Auto Scaling Groups and calls the AWS EC2 Fleet API directly, launching diversified Spot EC2 instances in under 45 seconds.
+   - Executes `consolidationPolicy: WhenEmptyOrUnderutilized` to terminate idle EC2 instances 60 seconds after Ray worker pods terminate.
+   - Ingests 2-minute Spot interruption notices and rebalance recommendations via EventBridge and SQS to gracefully drain nodes before preemption.
+
+For the complete technical specification, failure scenario matrix, and operational commands, consult [ray-ai-platform/docs/compute-karpenter.md](file:///ray-ai-platform/docs/compute-karpenter.md).
+
 ---
 
 ## 5. Memory, `/dev/shm`, and Object Store Sizing

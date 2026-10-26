@@ -72,9 +72,9 @@ variable "worker_max_size" {
 }
 
 variable "worker_desired_size" {
-  description = "Desired number of worker nodes"
+  description = "Desired number of worker nodes (0 when managed dynamically by Karpenter)"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "tags" {

@@ -93,6 +93,7 @@ For complete technical specifications, see [ray-ai-platform/docs/architecture.md
 | :--- | :--- | :--- |
 | **Modular IaC** | 5 decoupled Terraform layers (`bootstrap`, `network`, `eks`, `data`, `platform`) with state locking. | [`ray-ai-platform/terraform/`](file:///ray-ai-platform/terraform) |
 | **Spot Resiliency** | Spot instances across 4 diverse instance families (`m6i`, `m5`, `m5a`, `m6a`) with On-Demand head isolation. | [`ray-ai-platform/terraform/eks/main.tf`](file:///ray-ai-platform/terraform/eks/main.tf#L70-L120) |
+| **Karpenter Autoscaling** | Coordinated two-level autoscaling: KubeRay pod scaling + Karpenter just-in-time EC2 Spot provisioning (<45s) and consolidation. | [`ray-ai-platform/docs/compute-karpenter.md`](file:///ray-ai-platform/docs/compute-karpenter.md) |
 | **Ray Shared Memory** | Dedicated 4Gi `Memory` emptyDir mounted to `/dev/shm` + Arrow object store explicitly capped at 3.6 GiB. | [`ray-ai-platform/kubernetes/ray/ray-cluster.yaml`](file:///ray-ai-platform/kubernetes/ray/ray-cluster.yaml#L95-L115) |
 | **Actor Scheduling** | Deterministic singleton placement using custom resource `entity_resolver_slot: 1` avoiding split-brain. | [`ray-ai-platform/kubernetes/ray/ray-cluster.yaml`](file:///ray-ai-platform/kubernetes/ray/ray-cluster.yaml#L106) |
 | **Apache Iceberg** | Transactional v2 Lakehouse table with ACID snapshots, schema evolution, and Glue Catalog integration. | [`ray-ai-platform/application/src/iceberg_sink.py`](file:///ray-ai-platform/application/src/iceberg_sink.py) |
@@ -121,12 +122,13 @@ assignment-1/
     │   ├── eks/                       # EKS v1.31, On-Demand Head pool, Spot Worker pool, KMS
     │   ├── data/                      # S3 Lakehouse bucket, Glue Catalog DB, DynamoDB ledger, IRSA
     │   ├── platform/                  # ECR container registry, GitHub Actions OIDC provider & role
-    │   ├── modules/                   # Reusable modules (vpc, eks, s3_iceberg, ledger, irsa)
+    │   ├── modules/                   # Reusable modules (vpc, eks, s3_iceberg, ledger, irsa, karpenter)
     │   └── environments/              # Environment configuration tfvars (test)
     │
     ├── kubernetes/                    # Kubernetes manifests & KubeRay specifications
     │   ├── namespaces/                # Namespace definitions (ray-system, ray-workloads)
     │   ├── security/                  # RBAC, Pod ServiceAccounts, and IRSA annotations
+    │   ├── karpenter/                 # Karpenter EC2NodeClass & Spot/On-Demand NodePools
     │   ├── ray/                       # KubeRay RayCluster CRD (head + spot worker sizing)
     │   ├── jobs/                      # RayJob CRD for automated batch pipeline execution
     │   └── observability/             # Prometheus PodMonitor, Fluent Bit ConfigMap, Ingress OAuth2
@@ -148,7 +150,8 @@ assignment-1/
     │   └── requirements.txt           # Frozen application dependencies
     │
     ├── helm/                          # Helm chart configuration
-    │   └── kuberay-operator/          # Values for KubeRay Operator deployment
+    │   ├── kuberay-operator/          # Values for KubeRay Operator deployment
+    │   └── karpenter/                 # Values for Karpenter Controller deployment
     │
     ├── .github/workflows/             # GitHub Actions CI/CD
     │   ├── pr-validation.yml          # Pull request linting, formatting, security, & TF plan
@@ -164,6 +167,7 @@ assignment-1/
     │
     └── docs/                          # Complete Platform Documentation Suite
         ├── architecture.md            # Comprehensive unified architecture blueprint
+        ├── compute-karpenter.md       # Karpenter + Ray autoscaling architecture & operations
         ├── implementation.md          # Complete 14-phase implementation plan & runbook
         ├── architecture-review.md     # Architectural scorecard & trade-off review
         ├── deployment.md              # Cloud deployment and teardown runbook
@@ -418,6 +422,7 @@ Review the comprehensive, itemized verification proofs in [ray-ai-platform/REQUI
 | Document | Description |
 | :--- | :--- |
 | [ray-ai-platform/docs/architecture.md](file:///ray-ai-platform/docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
+| [ray-ai-platform/docs/compute-karpenter.md](file:///ray-ai-platform/docs/compute-karpenter.md) | Coordinated Karpenter + Ray autoscaling architecture, Spot resilience, and failure runbooks. |
 | [ray-ai-platform/docs/implementation.md](file:///ray-ai-platform/docs/implementation.md) | Complete 14-phase engineering roadmap, deliverables, and validation criteria. |
 | [ray-ai-platform/REQUIREMENTS_TRACEABILITY.md](file:///ray-ai-platform/REQUIREMENTS_TRACEABILITY.md) | Requirement-by-requirement audit matrix with test evidence. |
 | [ray-ai-platform/docs/architecture-review.md](file:///ray-ai-platform/docs/architecture-review.md) | Architectural scorecard against cloud engineering best practices. |

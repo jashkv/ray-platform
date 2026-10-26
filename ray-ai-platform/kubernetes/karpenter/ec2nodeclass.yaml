@@ -1,0 +1,51 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+  labels:
+    app.kubernetes.io/part-of: ray-platform
+    environment: test
+spec:
+  # IAM Role for provisioned nodes (managed via terraform/modules/karpenter)
+  role: "ray-platform-test-eks-karpenter-node-role"
+
+  # Official Amazon Linux 2023 optimized EKS AMI
+  amiFamily: AL2023
+
+  # Subnet Discovery: Discovers private subnets tagged with karpenter.sh/discovery
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "ray-platform-test-eks"
+        SubnetType: "Private"
+
+  # Security Group Discovery: Discovers cluster & node security groups
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "ray-platform-test-eks"
+
+  # Resource Tagging applied to all launched EC2 instances and EBS volumes
+  tags:
+    Name: "ray-platform-test-karpenter-worker"
+    Environment: "test"
+    Project: "ray-platform"
+    CostCenter: "AI-Compute"
+    ManagedBy: "Karpenter"
+    "karpenter.sh/discovery": "ray-platform-test-eks"
+
+  # Enforce IMDSv2 (Zero-Trust credential projection protection)
+  metadataOptions:
+    httpEndpoint: enabled
+    httpProtocolIPv6: disabled
+    httpPutResponseHopLimit: 2
+    httpTokens: required
+
+  # Root Volume Block Device Mapping: 50 GiB gp3 with SSE-KMS encryption
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 50Gi
+        volumeType: gp3
+        iops: 3000
+        throughput: 125
+        encrypted: true
+        deleteOnTermination: true

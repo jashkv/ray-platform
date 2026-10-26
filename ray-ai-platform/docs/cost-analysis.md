@@ -6,7 +6,8 @@ This document provides a realistic cost model for operating the **Distributed AI
 1. **Spot Instance Diversification:** Achieves a **$\sim 70\%$ compute cost reduction** for data processing and model training workers.
 2. **S3 Gateway VPC Endpoint:** Eliminates all NAT Gateway data processing fees (\$0.045/GB) for petabyte-scale lakehouse transactions.
 3. **Single NAT Gateway Architecture for Test Environment:** Reduces baseline networking overhead by $66\%$ (\$65/month savings).
-4. **Elastic Worker Autoscaling:** Worker node groups autoscale down to **0 nodes** during idle periods.
+4. **Elastic Worker Autoscaling via KubeRay:** Ray worker replicas autoscale down to **0 pods** during idle periods.
+5. **Karpenter JIT Node Provisioning & Consolidation:** Provisions EC2 Spot instances in under 45s only when pods are Pending, and terminates empty nodes 60s after job completion—ensuring \$0.00 worker idle waste.
 
 ---
 

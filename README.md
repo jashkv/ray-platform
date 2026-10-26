@@ -108,6 +108,7 @@ For complete technical specifications, see [docs/architecture.md](file:///docs/a
 
 ```
 assignment-1/
+├── Makefile                           # Production automation & orchestration command center
 ├── README.md                          # Master project documentation (this file)
 ├── docs/                              # Architecture & implementation guides
 │   ├── architecture.md                # Comprehensive unified architecture blueprint
@@ -185,9 +186,18 @@ The entire platform can be verified locally without requiring AWS cloud credenti
 - `uv` or `pip`
 - Terraform 1.5+ (for static configuration checks)
 
-### One-Command Verification
-Run the master end-to-end validation script:
+### Quickstart via Makefile
+The repository includes a comprehensive `Makefile` automating the entire lifecycle:
 
+```bash
+make help          # Interactive catalog of all 50+ automation targets
+make setup         # Audit tools and bootstrap Python virtual environment
+make lint          # Run formatting and linters (Python, Terraform, secret scan)
+make test          # Run complete test suite (generator, resolver, Iceberg, pipeline)
+make e2e-local     # Execute master local end-to-end verification harness (7 gates)
+```
+
+Alternatively, run the script directly:
 ```bash
 cd ray-ai-platform
 ./scripts/run_local_e2e.sh

@@ -47,7 +47,6 @@ REQUIRED_FILES=(
     ".gitignore"
     ".dockerignore"
     "pyproject.toml"
-    "REQUIREMENTS_TRACEABILITY.md"
     "docs/implementation.md"
 )
 

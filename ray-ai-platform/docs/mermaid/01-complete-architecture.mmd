@@ -1,0 +1,118 @@
+flowchart TD
+    %% Global Platform Architecture Diagram
+    subgraph External["External World & Source Data"]
+        S1["Source S1: Supply Chain CSV"]
+        S2["Source S2: Financial Records CSV"]
+        DEV["DevOps / Data Engineer (kubectl & AWS CLI)"]
+        GHA["GitHub Actions CI/CD (OIDC Federated)"]
+    end
+
+    subgraph AWS["AWS Cloud (us-east-1) - Test Environment"]
+        subgraph IAM_KMS["Identity & Cryptographic Foundations"]
+            OIDC["AWS IAM OpenID Connect Provider"]
+            KMS["AWS KMS Customer Managed Key (CMK)"]
+            IRSA_RAY["IRSA: ray-workload-role"]
+            IRSA_KARP["IRSA: karpenter-controller-role"]
+            NODE_ROLE["IAM Role: karpenter-node-role"]
+        end
+
+        subgraph VPC["AWS VPC: 10.0.0.0/16 (3 AZs: us-east-1a, 1b, 1c)"]
+            subgraph PublicSubnets["Public Subnets (NAT Gateway & IGW)"]
+                NAT["NAT Gateways (Multi-AZ)"]
+                ALB["Internal Ingress / ALB Controller"]
+            end
+
+            subgraph PrivateEndpoints["VPC Endpoints (AWS PrivateLink)"]
+                VPCE_S3["S3 Gateway Endpoint"]
+                VPCE_DDB["DynamoDB Gateway Endpoint"]
+                VPCE_ECR["ECR API & DKR Interface Endpoints"]
+                VPCE_CW["CloudWatch Logs Interface Endpoint"]
+                VPCE_STS["STS Interface Endpoint"]
+                VPCE_SQS["SQS Interface Endpoint"]
+            end
+
+            subgraph EKS["Amazon EKS Cluster: ray-platform-test-eks (v1.30)"]
+                EKS_API["EKS Control Plane & Kubernetes API Server"]
+
+                subgraph SystemNodeGroup["System Capacity: On-Demand Node Group (m5.large)"]
+                    COREDNS["CoreDNS & VPC-CNI"]
+                    KUBERAY["KubeRay Operator (v1.2.2)"]
+                    KARP_CTRL["Karpenter Controller (v1.0.8)"]
+                    PROM["Prometheus Server & Node Exporter"]
+                    GRAFANA["Grafana Dashboards"]
+                    FLUENT["AWS Fluent Bit DaemonSet"]
+                end
+
+                subgraph RayHeadPlacement["Ray Head Placement (On-Demand System Tier)"]
+                    RAY_HEAD["Ray Head Pod (ray-cluster-kuberay-head)\n- GCS Global Control Store\n- In-Tree Autoscaler\n- Dashboard Port: 8265\n- Metrics Port: 8080\n- Custom Resource: entity_resolver_slot: 1"]
+                end
+
+                subgraph KarpenterCompute["Dynamic Compute Layer: Karpenter JIT Provisioned"]
+                    subgraph SpotFleet["Diversified EC2 Spot Instances (m6i, m5, m5a, m6a)"]
+                        RAY_WORKER_1["Ray Worker Pod 1\n- 4 CPU / 16GiB RAM\n- 4GiB /dev/shm tmpfs\n- Plasma Store: 3.6GiB"]
+                        RAY_WORKER_2["Ray Worker Pod 2\n- Ingestion & Validation\n- Feature Extraction"]
+                        RAY_WORKER_N["Ray Worker Pod N\n- Ray Train Distributed ML\n- Scale-to-Zero Capable"]
+                    end
+                end
+            end
+        end
+
+        subgraph Eventing["Event-Driven Interruption & Orchestration"]
+            EB_SPOT["AWS EventBridge (Spot Interruption & Rebalance Notice)"]
+            SQS_KARP["SQS Interruption Queue\n(ray-platform-test-eks-karpenter-interruption)"]
+            EB_CRON["EventBridge Cron Trigger (rate: 15m)"]
+            LAMBDA["Discovery Lambda (S3 Poller & Ledger Registrar)"]
+        end
+
+        subgraph Storage["Storage & Transactional Lakehouse"]
+            S3_DATA[("Amazon S3 Data Bucket\n- incoming/ (Raw CSVs)\n- quarantine/ (Ambiguous Rows)\n- iceberg-warehouse/ (Parquet)\n- models/ (LightGBM Artifacts)")]
+            DDB_LEDGER[("DynamoDB Processing Ledger\n(ray_processing_ledger)\n- Conditional Locks\n- Idempotency Tracking")]
+            GLUE_CATALOG[("AWS Glue Data Catalog\n(corporate_data_db)")]
+        end
+
+        subgraph Registry["Container & Artifact Registry"]
+            ECR["Amazon ECR: ray-data-processor"]
+        end
+
+        subgraph Logs["Observability & Auditing"]
+            CW_LOGS["Amazon CloudWatch Logs\n(/aws/eks/ray-platform-test/workloads)"]
+        end
+    end
+
+    %% Ingestion Flow
+    S1 -->|"Upload Raw CSV"| S3_DATA
+    S2 -->|"Upload Raw CSV"| S3_DATA
+    EB_CRON -->|"Trigger Discovery"| LAMBDA
+    LAMBDA -->|"Inspect S3 incoming/"| S3_DATA
+    LAMBDA <-->|"Acquire Atomic Lease"| DDB_LEDGER
+    LAMBDA -->|"Submit RayJob CRD"| EKS_API
+
+    %% CI/CD Flow
+    DEV -->|"Git Push"| GHA
+    GHA -->|"Authenticate via OIDC"| OIDC
+    GHA -->|"Build & Push Container"| ECR
+    GHA -->|"Deploy Helm & Manifests"| EKS_API
+
+    %% Kubernetes & KubeRay Flow
+    EKS_API -->|"Reconcile RayJob"| KUBERAY
+    KUBERAY -->|"Manage Cluster Lifecycle"| RAY_HEAD
+
+    %% Two-Level Autoscaling
+    RAY_HEAD -->|"Workload Demand (Scale 0 to 8)"| RAY_WORKER_1
+    RAY_HEAD -->|"Demand Triggers Unschedulable Pods"| KARP_CTRL
+    KARP_CTRL -->|"Launch EC2 Spot Fleet (<45s)"| SpotFleet
+    EB_SPOT -->|"2-Minute Preemption Warning"| SQS_KARP
+    SQS_KARP -->|"Poll & Proactive Cordon/Drain"| KARP_CTRL
+
+    %% Execution & Storage
+    RAY_WORKER_1 <-->|"Read Raw CSVs"| S3_DATA
+    RAY_WORKER_1 <-->|"Update Stage Progress"| DDB_LEDGER
+    RAY_WORKER_1 -->|"Commit ACID Upserts"| GLUE_CATALOG
+    RAY_WORKER_1 -->|"Write Parquet & Manifests"| S3_DATA
+    RAY_WORKER_1 -->|"Quarantine Ambiguous Records"| S3_DATA
+
+    %% Observability
+    RAY_HEAD -->|"Export Metrics (:8080)"| PROM
+    RAY_WORKER_1 -->|"Export Metrics (:8080)"| PROM
+    PROM -->|"Visualize"| GRAFANA
+    FLUENT -->|"Ship Pod Logs via PrivateLink"| CW_LOGS

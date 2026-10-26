@@ -1,0 +1,126 @@
+# 04 — End-to-End Pipeline & Data Processing Flow
+
+This document details the **End-to-End Data Processing Pipeline Flow**, covering raw ingestion, dynamic schema inspection, multi-tier deterministic entity resolution, distributed machine learning via Ray Train, and transactional commits to Apache Iceberg.
+
+---
+
+## Pipeline Flow Diagram
+
+```mermaid
+flowchart TD
+    %% End-to-End Data Processing Pipeline Flow
+    subgraph S0_Ingestion["Stage 0: Ingestion & Trigger"]
+        CSV_S1["Raw S1 CSV: Supply Chain (1,200 rows)"]
+        CSV_S2["Raw S2 CSV: Financial Data (1,200 rows)"]
+        S3_IN["S3: incoming/"]
+        LAMBDA["Discovery Lambda"]
+        DDB_LEDGER[("DynamoDB Ledger: ray_processing_ledger")]
+        K8S_RAYJOB["RayJob Submission (ray-job.yaml)"]
+    end
+
+    subgraph S1_Validation["Stage 1: Dynamic Schema Inspection & Validation"]
+        RAY_DATA_READ["Ray Data: read_csv (Distributed Slices)"]
+        SCHEMA_DETECT["Dynamic Schema Inspector\n- Detect Unknown Columns\n- Identify Tax ID, Name, Revenue Candidates\n- Handle Missing / Corrupt Types"]
+        VALID_RECORDS["Validated Record Stream"]
+        CORRUPT_RECORDS["Unparseable Records"]
+        S3_MALFORMED["S3: dead-letter/malformed/"]
+    end
+
+    subgraph S2_Normalization["Stage 2: Canonical Normalization & Cleaning"]
+        CLEAN_TEXT["String Sanitization\n- Lowercase & Unicode normalize\n- Strip Corporate Suffixes (Inc, LLC, Corp, GmbH, Ltd)\n- Whitespace collapsing"]
+        CLEAN_TAX["Tax ID Normalization\n- Strip hyphens, spaces, punctuation\n- Uppercase alphanumeric"]
+        CLEAN_GEO["ISO Country Code Standardization\n- Map aliases to ISO 3166-1 alpha-2"]
+    end
+
+    subgraph S3_EntityResolution["Stage 3: Multi-Tier Deterministic Entity Resolution"]
+        ACTOR_CALL["Call EntityResolver Actor\n(Pinned via entity_resolver_slot: 1)"]
+        
+        MATCH_TIER1{"Tier 1:\nExact Tax ID Match?"}
+        MATCH_TIER2{"Tier 2:\nToken Sort Ratio >= 0.90\n& Country / Year Match?"}
+        MATCH_TIER3{"Tier 3:\nAmbiguous Score\n(0.65 <= Ratio < 0.90)?"}
+
+        ASSIGN_EXISTING["Merge with Existing Entity\n(Assign Known Entity ID)"]
+        ASSIGN_NEW["Mint New Canonical ID\n(UUIDv5: COMP-XXXXXXXX-XXXX)"]
+        QUARANTINE_RECORD["Quarantine Ambiguous Entity\n(Human Review Queue)"]
+        S3_QUARANTINE["S3: quarantine/ambiguous_entities/"]
+    end
+
+    subgraph S4_ML_Training["Stage 4: Ray Train Distributed Machine Learning"]
+        FEATURE_ENG["Feature Engineering\n- Log Transform Target (Annual Revenue)\n- One-Hot Country & Industry Encodings\n- ESG & Risk Score Scaling"]
+        TRAIN_SPLIT["Distributed Train/Test Split (80/20)"]
+        RAY_TRAINER["Ray Train Distributed Regressor\n(Gradient Boosting / LightGBM)"]
+        EVAL_METRICS["Model Evaluation\n- Target R² >= 0.85\n- Calculate RMSE & MAE"]
+        SAVE_MODEL["Persist Model Artifacts\n- S3: models/model.tar.gz\n- S3: models/metrics.json"]
+    end
+
+    subgraph S5_Lakehouse["Stage 5: Apache Iceberg Transactional Lakehouse"]
+        ICEBERG_TABLE[("Apache Iceberg Table:\ncorporate_data_db.corporate_registry")]
+        GLUE_CATALOG[("AWS Glue Data Catalog (Lock & Metastore)")]
+        S3_WAREHOUSE[("S3: iceberg-warehouse/corporate_registry/\n- Data Parquet Files\n- Avro Manifests & Snapshot Logs")]
+    end
+
+    subgraph S6_Finalize["Stage 6: Ledger Finalization & Audit"]
+        AUDIT_METRICS["Compile Run Statistics\n- Total Rows Processed\n- Entities Resolved\n- Quarantine Count\n- Model R² Score"]
+        DDB_COMPLETE[("Update DynamoDB Status: COMPLETED\n(Atomic Conditional Update)")]
+    end
+
+    %% Pipeline Flow
+    CSV_S1 --> S3_IN
+    CSV_S2 --> S3_IN
+    S3_IN --> LAMBDA
+    LAMBDA <-->|"Conditional Lease Lock"| DDB_LEDGER
+    LAMBDA -->|"Submit Job"| K8S_RAYJOB
+    K8S_RAYJOB --> RAY_DATA_READ
+
+    RAY_DATA_READ --> SCHEMA_DETECT
+    SCHEMA_DETECT -->|Valid Schema| VALID_RECORDS
+    SCHEMA_DETECT -->|Corrupt Schema| CORRUPT_RECORDS
+    CORRUPT_RECORDS --> S3_MALFORMED
+
+    VALID_RECORDS --> CLEAN_TEXT
+    CLEAN_TEXT --> CLEAN_TAX
+    CLEAN_TAX --> CLEAN_GEO
+    CLEAN_GEO --> ACTOR_CALL
+
+    ACTOR_CALL --> MATCH_TIER1
+    MATCH_TIER1 -->|Yes (Confidence: 1.0)| ASSIGN_EXISTING
+    MATCH_TIER1 -->|No| MATCH_TIER2
+
+    MATCH_TIER2 -->|Yes (Confidence >= 0.90)| ASSIGN_EXISTING
+    MATCH_TIER2 -->|No| MATCH_TIER3
+
+    MATCH_TIER3 -->|Yes (0.65 - 0.89)| QUARANTINE_RECORD
+    MATCH_TIER3 -->|No (Confidence < 0.65)| ASSIGN_NEW
+
+    QUARANTINE_RECORD --> S3_QUARANTINE
+    ASSIGN_EXISTING --> FEATURE_ENG
+    ASSIGN_NEW --> FEATURE_ENG
+
+    FEATURE_ENG --> TRAIN_SPLIT
+    TRAIN_SPLIT --> RAY_TRAINER
+    RAY_TRAINER --> EVAL_METRICS
+    EVAL_METRICS --> SAVE_MODEL
+
+    ASSIGN_EXISTING --> ICEBERG_TABLE
+    ASSIGN_NEW --> ICEBERG_TABLE
+    ICEBERG_TABLE <-->|"Acquire Catalog Commit Lock"| GLUE_CATALOG
+    ICEBERG_TABLE -->|"Write Parquet & Manifests"| S3_WAREHOUSE
+
+    ICEBERG_TABLE --> AUDIT_METRICS
+    SAVE_MODEL --> AUDIT_METRICS
+    AUDIT_METRICS --> DDB_COMPLETE
+```
+
+---
+
+## Detailed Stage Execution Matrix
+
+| Stage | Operation | Logic / Mechanism | Output Artifact |
+| :--- | :--- | :--- | :--- |
+| **0. Discovery & Lock** | Lease acquisition | EventBridge invokes Lambda; acquires conditional write on DynamoDB ledger with lease TTL. | Idempotent lease token; `RayJob` submission. |
+| **1. Dynamic Ingestion** | Schema inspection | `ray.data.read_csv()` ingests chunked slices; introspects column presence and type variances dynamically without rigid schemas. | Validated record blocks; dead-letter write to `dead-letter/malformed/`. |
+| **2. Normalization** | Text & code sanitation | Strips corporate suffixes (`Inc`, `LLC`, `Corp`, `GmbH`), removes non-alphanumeric punctuation from tax IDs, standardizes ISO 3166-1 country codes. | Uniform canonical strings. |
+| **3. Entity Resolution** | Multi-tier deterministic actor | Pinned `EntityResolver` actor: Tier 1 Tax ID ($1.00$), Tier 2 Token Sort Ratio $\ge 0.90$ with country corroborate ($0.92$), Tier 3 Ambiguous ($0.65 - 0.89$) to quarantine, Tier 4 UUIDv5 minting. | Canonical Entity ID (`COMP-XXXXXXXX-XXXX`) & quarantine writes. |
+| **4. Distributed ML** | Ray Train Regressor | 80/20 train/test split across Ray worker actors; trains distributed Gradient Boosting / LightGBM on annual revenue; validates $R^2 \ge 0.85$. | Model weights in `models/model.tar.gz`; `metrics.json`. |
+| **5. Lakehouse Write** | Apache Iceberg commit | PyIceberg performs ACID snapshot commit to `corporate_data_db.corporate_registry` via AWS Glue Catalog lock. | Snappy Parquet files and Avro manifest tree in `iceberg-warehouse/`. |
+| **6. Audit & Release** | Ledger finalization | Records total row count, resolution stats, and training metrics; updates DynamoDB status to `COMPLETED`. | Auditable immutable ledger entry. |

@@ -41,6 +41,9 @@ The platform delivers a resilient, zero-trust distributed AI and data engineerin
 
 ## 2. System Architecture & Component Interaction
 
+> [!TIP]
+> **Complete Visual Architecture Suite:** For dedicated, standalone Mermaid diagrams covering Zero-Trust networking, compute tiering, pipeline data flow, autoscaling lifecycles, and worker node topologies, see the [docs/mermaid/ Directory](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/docs/mermaid/README.md).
+
 ### 2.1 High-Level Architecture Diagram
 
 ```mermaid

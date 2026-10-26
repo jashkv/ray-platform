@@ -421,6 +421,7 @@ Review the comprehensive, itemized verification proofs in [ray-ai-platform/REQUI
 
 | Document | Description |
 | :--- | :--- |
+| [ray-ai-platform/docs/mermaid/README.md](file:///ray-ai-platform/docs/mermaid/README.md) | Centralized Mermaid visual architecture library (10 comprehensive diagrams & source files). |
 | [ray-ai-platform/docs/architecture.md](file:///ray-ai-platform/docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
 | [ray-ai-platform/docs/compute-karpenter.md](file:///ray-ai-platform/docs/compute-karpenter.md) | Coordinated Karpenter + Ray autoscaling architecture, Spot resilience, and failure runbooks. |
 | [ray-ai-platform/docs/implementation.md](file:///ray-ai-platform/docs/implementation.md) | Complete 14-phase engineering roadmap, deliverables, and validation criteria. |

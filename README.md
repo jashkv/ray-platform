@@ -1,11 +1,11 @@
 # AWS Serverless AI & Data Lakehouse Platform — The Serverless Foundation
 
-[![CI Validation](https://img.shields.io/badge/CI%20Validation-Passing-brightgreen.svg)](file:///ray-ai-platform/.github/workflows/pr-validation.yml)
+[![CI Validation](https://img.shields.io/badge/CI%20Validation-Passing-brightgreen.svg)](file:///.github/workflows/pr-validation.yml)
 [![Branch](https://img.shields.io/badge/Branch-serverless-blue.svg)](file:///README.md)
-[![Orchestrator](https://img.shields.io/badge/Orchestrator-AWS%20Step%20Functions-orange.svg)](file:///ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json)
-[![Compute](https://img.shields.io/badge/Compute-AWS%20Lambda%20(Python%203.12)-yellow.svg)](file:///ray-ai-platform/application/src/serverless/handlers.py)
-[![Apache Iceberg](https://img.shields.io/badge/Apache%20Iceberg-v2%20ACID-cyan.svg)](file:///ray-ai-platform/application/src/iceberg_sink.py)
-[![Terraform](https://img.shields.io/badge/Terraform-1.10+-purple.svg)](file:///ray-ai-platform/terraform/serverless)
+[![Orchestrator](https://img.shields.io/badge/Orchestrator-AWS%20Step%20Functions-orange.svg)](file:///terraform/serverless/step_functions_pipeline.asl.json)
+[![Compute](https://img.shields.io/badge/Compute-AWS%20Lambda%20(Python%203.12)-yellow.svg)](file:///application/src/serverless/handlers.py)
+[![Apache Iceberg](https://img.shields.io/badge/Apache%20Iceberg-v2%20ACID-cyan.svg)](file:///application/src/iceberg_sink.py)
+[![Terraform](https://img.shields.io/badge/Terraform-1.10+-purple.svg)](file:///terraform/serverless)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
 An enterprise-grade, production-ready, event-driven serverless AI data engineering and machine learning platform deployed on AWS using **AWS Step Functions, AWS Lambda, Amazon DynamoDB, AWS Glue Data Catalog, Apache Iceberg, and Amazon S3**.
@@ -132,17 +132,17 @@ flowchart TD
 
 | Capability | Architecture Decision | Implementation Reference |
 | :--- | :--- | :--- |
-| **Serverless Orchestration** | AWS Step Functions State Machine with Distributed Map and exponential backoff retries. | [`ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json`](file:///ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json) |
-| **Micro-Function Compute** | 6 modular AWS Lambda functions running in isolated Firecracker microVMs. | [`ray-ai-platform/application/src/serverless/handlers.py`](file:///ray-ai-platform/application/src/serverless/handlers.py) |
-| **$0.00 Idle Waste** | Full scale-to-zero compute. Charges occur strictly per millisecond of function execution. | [`ray-ai-platform/docs/cost-analysis.md`](file:///ray-ai-platform/docs/cost-analysis.md) |
-| **Dynamic Schema Ingestion** | Dynamic column alias discovery resolving variations in header naming, casing, and order. | [`ray-ai-platform/application/src/serverless/handlers.py`](file:///ray-ai-platform/application/src/serverless/handlers.py#L40-L115) |
-| **Entity Resolution Engine** | Deterministic multi-tier engine: Tax ID exact + Levenshtein name match + country/year corroboration. | [`ray-ai-platform/application/src/entity_resolver.py`](file:///ray-ai-platform/application/src/entity_resolver.py) |
-| **Anomaly Quarantining** | Diverts ambiguous candidate matches ($0.65 - 0.87$) into S3 dead-letter quarantine. | [`ray-ai-platform/application/src/serverless/handlers.py`](file:///ray-ai-platform/application/src/serverless/handlers.py#L145-L185) |
-| **Apache Iceberg Lakehouse** | Transactional v2 Snappy Parquet table backed by AWS Glue Data Catalog locks. | [`ray-ai-platform/application/src/iceberg_sink.py`](file:///ray-ai-platform/application/src/iceberg_sink.py) |
-| **ML Revenue Prediction** | Gradient Boosting regressor predicting corporate annual revenue ($R^2 = 0.8725$). | [`ray-ai-platform/application/src/train_model.py`](file:///ray-ai-platform/application/src/train_model.py) |
-| **Atomic Idempotency** | DynamoDB conditional put (`attribute_not_exists(execution_id)`) prevents duplicate runs. | [`ray-ai-platform/application/src/serverless/handlers.py`](file:///ray-ai-platform/application/src/serverless/handlers.py#L25-L65) |
-| **Automated Dead-Lettering** | Amazon SQS DLQ with 14-day retention capturing all unhandled Step Functions errors. | [`ray-ai-platform/terraform/serverless/main.tf`](file:///ray-ai-platform/terraform/serverless/main.tf#L110-L125) |
-| **Zero-Trust IAM** | Least-privilege IAM roles with temporary 1-hour STS credentials and KMS CMK encryption. | [`ray-ai-platform/terraform/serverless/iam.tf`](file:///ray-ai-platform/terraform/serverless/iam.tf) |
+| **Serverless Orchestration** | AWS Step Functions State Machine with Distributed Map and exponential backoff retries. | [`terraform/serverless/step_functions_pipeline.asl.json`](file:///terraform/serverless/step_functions_pipeline.asl.json) |
+| **Micro-Function Compute** | 6 modular AWS Lambda functions running in isolated Firecracker microVMs. | [`application/src/serverless/handlers.py`](file:///application/src/serverless/handlers.py) |
+| **$0.00 Idle Waste** | Full scale-to-zero compute. Charges occur strictly per millisecond of function execution. | [`docs/cost-analysis.md`](file:///docs/cost-analysis.md) |
+| **Dynamic Schema Ingestion** | Dynamic column alias discovery resolving variations in header naming, casing, and order. | [`application/src/serverless/handlers.py`](file:///application/src/serverless/handlers.py#L40-L115) |
+| **Entity Resolution Engine** | Deterministic multi-tier engine: Tax ID exact + Levenshtein name match + country/year corroboration. | [`application/src/entity_resolver.py`](file:///application/src/entity_resolver.py) |
+| **Anomaly Quarantining** | Diverts ambiguous candidate matches ($0.65 - 0.87$) into S3 dead-letter quarantine. | [`application/src/serverless/handlers.py`](file:///application/src/serverless/handlers.py#L145-L185) |
+| **Apache Iceberg Lakehouse** | Transactional v2 Snappy Parquet table backed by AWS Glue Data Catalog locks. | [`application/src/iceberg_sink.py`](file:///application/src/iceberg_sink.py) |
+| **ML Revenue Prediction** | Gradient Boosting regressor predicting corporate annual revenue ($R^2 = 0.8725$). | [`application/src/train_model.py`](file:///application/src/train_model.py) |
+| **Atomic Idempotency** | DynamoDB conditional put (`attribute_not_exists(execution_id)`) prevents duplicate runs. | [`application/src/serverless/handlers.py`](file:///application/src/serverless/handlers.py#L25-L65) |
+| **Automated Dead-Lettering** | Amazon SQS DLQ with 14-day retention capturing all unhandled Step Functions errors. | [`terraform/serverless/main.tf`](file:///terraform/serverless/main.tf#L110-L125) |
+| **Zero-Trust IAM** | Least-privilege IAM roles with temporary 1-hour STS credentials and KMS CMK encryption. | [`terraform/serverless/iam.tf`](file:///terraform/serverless/iam.tf) |
 
 ---
 
@@ -153,7 +153,7 @@ assignment-1/
 ├── Makefile                           # Command automation & verification center
 ├── README.md                          # Master project documentation (this file)
 │
-└── ray-ai-platform/                   # PLATFORM IMPLEMENTATION ROOT
+└──                    # PLATFORM IMPLEMENTATION ROOT
     ├── pyproject.toml                 # Pinned Python package dependencies & tool settings
     │
     ├── terraform/                     # Decoupled Infrastructure as Code
@@ -226,7 +226,7 @@ make e2e-serverless-local
 ```
 Or directly:
 ```bash
-./ray-ai-platform/scripts/run_serverless_local.sh
+./scripts/run_serverless_local.sh
 ```
 
 **Verification Gate Execution Output:**
@@ -286,13 +286,13 @@ make tf-validate-serverless
 make tf-plan-serverless
 
 # 4. Apply infrastructure (when authorized)
-cd ray-ai-platform/terraform/serverless
+cd terraform/serverless
 terraform apply -auto-approve
 ```
 
 ### Triggering Pipeline via AWS CLI:
 ```bash
-STATE_MACHINE_ARN=$(cd ray-ai-platform/terraform/serverless && terraform output -raw state_machine_arn)
+STATE_MACHINE_ARN=$(cd terraform/serverless && terraform output -raw state_machine_arn)
 
 aws stepfunctions start-execution \
   --state-machine-arn "$STATE_MACHINE_ARN" \
@@ -321,7 +321,7 @@ $$\text{Cost per Pipeline Execution} \approx \$0.0014\text{ (less than one-seven
 | **10,000 runs / month** | ~$230.00 / mo | **$13.94 / mo** | $216.06 | **93.9%** |
 | **50,000 runs / month** | ~$350.00 / mo | **$69.70 / mo** | $280.30 | **80.1%** |
 
-Read the full financial breakdown in [ray-ai-platform/docs/cost-analysis.md](file:///ray-ai-platform/docs/cost-analysis.md).
+Read the full financial breakdown in [docs/cost-analysis.md](file:///docs/cost-analysis.md).
 
 ---
 
@@ -329,16 +329,16 @@ Read the full financial breakdown in [ray-ai-platform/docs/cost-analysis.md](fil
 
 | Document | Description |
 | :--- | :--- |
-| [ray-ai-platform/docs/mermaid/README.md](file:///ray-ai-platform/docs/mermaid/README.md) | Centralized Mermaid visual architecture library (11 comprehensive diagrams & source files). |
-| [ray-ai-platform/docs/architecture.md](file:///ray-ai-platform/docs/architecture.md) | In-depth serverless architecture, Step Functions ASL, Lambda sizing, and Iceberg lakehouse specs. |
-| [ray-ai-platform/docs/compute-karpenter.md](file:///ray-ai-platform/docs/compute-karpenter.md) | Serverless compute architecture, concurrency model, and Firecracker microVM scaling. |
-| [ray-ai-platform/docs/cost-analysis.md](file:///ray-ai-platform/docs/cost-analysis.md) | AWS serverless cost model, component breakdown ($0 idle), and break-even analysis. |
-| [ray-ai-platform/docs/deployment.md](file:///ray-ai-platform/docs/deployment.md) | Step-by-step serverless provisioning, execution triggering, and verification runbook. |
-| [ray-ai-platform/docs/security.md](file:///ray-ai-platform/docs/security.md) | Zero-trust IAM execution roles, temporary STS tokens, and KMS CMK envelope encryption. |
-| [ray-ai-platform/docs/troubleshooting.md](file:///ray-ai-platform/docs/troubleshooting.md) | Operational playbooks, Lambda timeout/OOM triage, and SQS DLQ redrive procedures. |
-| [ray-ai-platform/docs/architecture-review.md](file:///ray-ai-platform/docs/architecture-review.md) | Architectural scorecard against AWS Well-Architected Framework pillars. |
-| [ray-ai-platform/docs/implementation.md](file:///ray-ai-platform/docs/implementation.md) | Complete 6-phase serverless implementation roadmap and deliverables. |
-| [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md) | Master comparative blueprint contrasting EKS and Serverless architectures. |
+| [docs/mermaid/README.md](file:///docs/mermaid/README.md) | Centralized Mermaid visual architecture library (11 comprehensive diagrams & source files). |
+| [docs/architecture.md](file:///docs/architecture.md) | In-depth serverless architecture, Step Functions ASL, Lambda sizing, and Iceberg lakehouse specs. |
+| [docs/compute-karpenter.md](file:///docs/compute-karpenter.md) | Serverless compute architecture, concurrency model, and Firecracker microVM scaling. |
+| [docs/cost-analysis.md](file:///docs/cost-analysis.md) | AWS serverless cost model, component breakdown ($0 idle), and break-even analysis. |
+| [docs/deployment.md](file:///docs/deployment.md) | Step-by-step serverless provisioning, execution triggering, and verification runbook. |
+| [docs/security.md](file:///docs/security.md) | Zero-trust IAM execution roles, temporary STS tokens, and KMS CMK envelope encryption. |
+| [docs/troubleshooting.md](file:///docs/troubleshooting.md) | Operational playbooks, Lambda timeout/OOM triage, and SQS DLQ redrive procedures. |
+| [docs/architecture-review.md](file:///docs/architecture-review.md) | Architectural scorecard against AWS Well-Architected Framework pillars. |
+| [docs/implementation.md](file:///docs/implementation.md) | Complete 6-phase serverless implementation roadmap and deliverables. |
+| [docs/serverless-alternative.md](file:///docs/serverless-alternative.md) | Master comparative blueprint contrasting EKS and Serverless architectures. |
 
 ---
 

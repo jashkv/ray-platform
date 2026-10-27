@@ -1,77 +1,57 @@
-# 07 — Zero-Trust Security, Identity & Cryptographic Architecture
+# 07 — Zero-Trust Security, Identity & Cryptographic Architecture (Serverless Alternative)
 
-This document presents the **Zero-Trust Security, Identity Federation, and Encryption Architecture** protecting compute workloads, persistent storage, and access boundaries.
+This document provides the security, identity federation, and cryptographic envelope encryption architecture of the **AWS Serverless Platform**.
 
 ---
 
-## Security Architecture Diagram
+## 1. Architectural Diagram
 
 ```mermaid
 flowchart TD
-    %% Zero Trust Security, Workload Identity & Cryptographic Architecture
-    subgraph Identity_Providers["Identity & Authentication Providers"]
-        AWS_IAM["AWS Identity & Access Management (IAM)"]
-        OIDC_EKS["EKS IAM OpenID Connect (OIDC) Provider\noidc.eks.us-east-1.amazonaws.com/id/..."]
-        GHA_OIDC["GitHub Actions OIDC Provider\ntoken.actions.githubusercontent.com"]
+    %% Serverless Zero-Trust Security, Identity & Cryptographic Architecture
+    subgraph IdentityFederation["Zero-Trust Identity Federation"]
+        GHA["GitHub Actions CI/CD Pipeline"]
+        AWS_OIDC["AWS IAM OpenID Connect (OIDC) Provider\n(token.actions.githubusercontent.com)"]
+        DEPLOY_ROLE["IAM Role: github-actions-serverless-deployer\n(Condition: repo:org/repo:ref:refs/heads/serverless)"]
     end
 
-    subgraph EKS_Auth["EKS Modern Authentication Engine"]
-        ACCESS_ENTRY["EKS Access Entries (v1.30+)\n- Zero aws-auth ConfigMap\n- Principal: karpenter-node-role\n- Type: EC2_LINUX"]
-        K8S_RBAC["Kubernetes RBAC (ClusterRole / RoleBinding)\n- Principle of Least Privilege\n- Namespace Scoped: ray-system"]
+    subgraph RuntimeWorkloadIdentity["Serverless Workload Identity (AWS Native STS)"]
+        LAMBDA_EXEC_ROLE["IAM Role: lambda_exec_role\n- Temporary 1-Hour STS Credentials\n- Zero Long-Lived API Keys"]
+        SFN_ROLE["IAM Role: step_functions_role\n- Restricted to lambda:InvokeFunction\n- Restricted to sqs:SendMessage"]
     end
 
-    subgraph ServiceAccounts["Kubernetes ServiceAccounts (IRSA Bound)"]
-        SA_RAY["ServiceAccount: ray-pipeline-sa\nannotation: eks.amazonaws.com/role-arn = ray-workload-role"]
-        SA_KARP["ServiceAccount: karpenter\nannotation: eks.amazonaws.com/role-arn = karpenter-controller-role"]
+    subgraph CryptographicFoundations["Cryptographic Key Management"]
+        KMS_CMK["AWS KMS Customer Managed Key (CMK)\nKey ID: alias/ray-platform-test-key\n- Automatic 365-day rotation\n- Key Policy restricting usage to Lambda role"]
     end
 
-    subgraph Cryptographic_Foundation["Cryptographic Encryption Layer (AWS KMS)"]
-        KMS_CMK["AWS KMS Customer Managed Key (CMK)\nalias/ray-platform-test-key\n- Automatic 1-Year Key Rotation\n- Enforces Envelope Encryption"]
+    subgraph ResourcePolicies["Least-Privilege Resource Policies & Endpoints"]
+        S3_POLICY["Amazon S3 Lakehouse Bucket Policy:\n- Deny Insecure HTTP (aws:SecureTransport: false)\n- Deny Unencrypted Uploads (s3:x-amz-server-side-encryption)\n- Block All 4 Public Access Settings"]
+        DDB_POLICY["DynamoDB Table Policy:\n- SSE Specification Enabled (KMS)\n- Attribute-level conditional write enforcement"]
+        GLUE_POLICY["AWS Glue Data Catalog Policy:\n- Database & Table IAM authentication only"]
+        SQS_POLICY["SQS DLQ Policy:\n- SSE-KMS Encrypted\n- Strictly allows SendMessage from Step Functions"]
     end
 
-    subgraph AWS_Resources["Protected AWS Resources (Encrypted at Rest & in Transit)"]
-        S3_DATA[("Amazon S3 Buckets\n- Server-Side Encryption: aws:kms\n- Bucket Policy: Deny Non-TLS (aws:SecureTransport)\n- Block All Public Access: TRUE")]
-        DDB[("Amazon DynamoDB: ray_processing_ledger\n- KMS Managed Encryption\n- Point-In-Time Recovery (PITR) Enabled")]
-        EBS[("EC2 Host EBS Volumes (gp3)\n- KMS CMK Encrypted Blocks")]
-        SQS_INT[("SQS Interruption Queue\n- KMS SQS SSE Enabled")]
-        ECR_REG[("Amazon ECR: ray-data-processor\n- KMS Encryption & Image Scan On Push")]
-    end
+    GHA -->|1. Presents JWT Token| AWS_OIDC
+    AWS_OIDC -->|2. Validates Claims & Issues STS Session| DEPLOY_ROLE
+    DEPLOY_ROLE -->|3. Deploys Serverless IaC| RuntimeWorkloadIdentity
 
-    subgraph Pod_Runtime_Security["Pod & Host Hardening (Defense-in-Depth)"]
-        IMDSV2["IMDSv2 Enforced\n- HttpTokens: Required\n- HttpPutResponseHopLimit: 1\n(Blocks Pod Credential Theft)"]
-        SEC_CTX["Pod SecurityContext\n- allowPrivilegeEscalation: false\n- readOnlyRootFilesystem: true (where feasible)\n- drop: ALL capabilities"]
-        NET_POL["Kubernetes NetworkPolicy\n- Default Deny Ingress\n- Whitelist Intra-Ray RPC (:6379, :10001)"]
-    end
+    LAMBDA_EXEC_ROLE -->|Reads/Writes Data Files| S3_POLICY
+    LAMBDA_EXEC_ROLE -->|Claims/Finalizes Leases| DDB_POLICY
+    LAMBDA_EXEC_ROLE -->|Updates Table Pointer| GLUE_POLICY
+    SFN_ROLE -->|Enqueues on Failure| SQS_POLICY
 
-    %% Identity Federation
-    OIDC_EKS --> SA_RAY
-    OIDC_EKS --> SA_KARP
-    GHA_OIDC -->|"Federated CI/CD AssumeRole"| AWS_IAM
-    AWS_IAM --> ACCESS_ENTRY
-
-    %% Role Bounds
-    SA_RAY -->|"Assumes via STS AssumeRoleWithWebIdentity"| AWS_IAM
-    SA_KARP -->|"Assumes via STS AssumeRoleWithWebIdentity"| AWS_IAM
-
-    %% Cryptographic Ties
-    KMS_CMK -.->|"Encrypts Data at Rest"| S3_DATA
-    KMS_CMK -.->|"Encrypts Ledger at Rest"| DDB
-    KMS_CMK -.->|"Encrypts Node Volumes"| EBS
-    KMS_CMK -.->|"Encrypts Interruption Messages"| SQS_INT
-    KMS_CMK -.->|"Encrypts Container Images"| ECR_REG
-
-    %% Node Hardening
-    ACCESS_ENTRY --> EBS
-    IMDSV2 --- SEC_CTX
-    SEC_CTX --- NET_POL
+    KMS_CMK -.->|Envelope Encryption| S3_POLICY
+    KMS_CMK -.->|Envelope Encryption| DDB_POLICY
+    KMS_CMK -.->|Envelope Encryption| SQS_POLICY
 ```
 
 ---
 
-## Security Pillars
+## 2. Core Security Guarantees
 
-1. **Workload Identity (IRSA):** Pods obtain short-lived AWS STS credentials via IAM OpenID Connect federation. No permanent AWS access keys or secrets exist in Git, configuration files, or container layers.
-2. **KMS Envelope Encryption:** A dedicated Customer Managed Key (CMK) with annual rotation encrypts all data at rest across S3 buckets, DynamoDB ledgers, Karpenter node EBS root disks, and SQS interruption queues.
-3. **Transit Encryption Enforcement:** All S3 bucket policies reject any HTTP requests that do not specify `aws:SecureTransport: true` (TLS 1.2+ mandatory).
-4. **Zero Legacy `aws-auth`:** Karpenter Spot nodes register via AWS EKS Access Entries (`EC2_LINUX`), isolating node authentication from user permissions.
-5. **IMDSv2 Defense:** Node metadata responses require session tokens and are restricted to a hop limit of `1`, barring pods from querying the EC2 instance identity metadata service.
+1. **Zero Static Long-Lived Credentials:**
+   All execution is authenticated via temporary AWS STS tokens rotated automatically every hour. No AWS keys are stored anywhere.
+2. **KMS CMK Envelope Encryption:**
+   S3 buckets, DynamoDB ledger items, and SQS messages are encrypted with an AWS KMS Customer Managed Key (`alias/ray-platform-test-key`).
+3. **No Container Host Escapes:**
+   By relying on Firecracker microVMs, hardware-enforced boundaries isolate every Lambda execution.

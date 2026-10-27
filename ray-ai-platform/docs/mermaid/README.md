@@ -1,6 +1,6 @@
-# Ray AI Platform — Master Architecture Diagrams & Visual Reference
+# AWS Serverless Platform — Master Architecture Diagrams & Visual Reference
 
-This directory serves as the centralized visual architecture library for the **Distributed Ray AI Platform** on AWS EKS (`test` environment).
+This directory serves as the centralized visual architecture library for the **AWS Serverless AI & Data Lakehouse Platform** on branch `serverless` (`test` environment).
 
 Every diagram is authored in standard [Mermaid.js](https://mermaid.js.org/) syntax, allowing direct GitHub/IDE rendering and programmatic export to SVG, PNG, and PDF.
 
@@ -10,129 +10,138 @@ Every diagram is authored in standard [Mermaid.js](https://mermaid.js.org/) synt
 
 | # | Diagram Title | Scope & Description | Source File | Deep-Dive Document |
 | :---: | :--- | :--- | :---: | :---: |
-| **01** | [Complete Platform Architecture](#01--complete-platform-architecture) | End-to-end cloud infrastructure, VPC, EKS, KubeRay, Karpenter, S3 Lakehouse, DynamoDB ledger, and CI/CD. | [`01-complete-architecture.mmd`](01-complete-architecture.mmd) | [`01-complete-architecture.md`](01-complete-architecture.md) |
-| **02** | [Network Isolation & Zero-Trust](#02--network-isolation--zero-trust-architecture) | 3-tier Multi-AZ subnet topology, AWS PrivateLink VPC endpoints, Security Group chaining, NetworkPolicies, and IMDSv2. | [`02-network-zero-trust.mmd`](02-network-zero-trust.mmd) | [`02-network-zero-trust.md`](02-network-zero-trust.md) |
-| **03** | [Compute Architecture & Capacity Tiering](#03--compute-architecture--capacity-tiering) | EKS Control Plane, On-Demand System Node Group, Karpenter JIT Spot NodePool, Fallback On-Demand, and EKS Access Entries. | [`03-compute-architecture.mmd`](03-compute-architecture.mmd) | [`03-compute-architecture.md`](03-compute-architecture.md) |
-| **04** | [End-to-End Pipeline & Data Processing Flow](#04--end-to-end-pipeline--data-processing-flow) | CSV ingestion, dynamic schema inspection, multi-tier entity resolution, Ray Train ML regression, and Iceberg ACID commit. | [`04-pipeline-flow.mmd`](04-pipeline-flow.mmd) | [`04-pipeline-flow.md`](04-pipeline-flow.md) |
-| **05** | [Two-Level Autoscaling & Spot Interruption](#05--two-level-autoscaling-lifecycle--spot-interruption) | KubeRay pod scaling, Karpenter sub-45s JIT EC2 provisioning, EventBridge 2-min Spot notice drain, and scale-to-zero ($0 cost). | [`05-autoscaling-lifecycle.mmd`](05-autoscaling-lifecycle.mmd) | [`05-autoscaling-lifecycle.md`](05-autoscaling-lifecycle.md) |
-| **06** | [Ray Worker Node & Pod Internal Topology](#06--ray-worker-node--pod-internal-topology) | Linux kernel cgroups v2, 4 GiB `/dev/shm` tmpfs memory mount, Apache Arrow Plasma object store (3.6 GiB), and Raylet agents. | [`06-ray-worker-node.mmd`](06-ray-worker-node.mmd) | [`06-ray-worker-node.md`](06-ray-worker-node.md) |
-| **07** | [Zero-Trust Security & Identity Federation](#07--zero-trust-security-identity--cryptographic-architecture) | IAM Roles for Service Accounts (IRSA), GitHub OIDC, AWS KMS CMK envelope encryption, EKS Access Entries, and RBAC. | [`07-security-identity.mmd`](07-security-identity.mmd) | [`07-security-identity.md`](07-security-identity.md) |
-| **08** | [Observability, Metrics & Centralized Logging](#08--observability-metrics--centralized-logging-architecture) | Prometheus `PodMonitor` scraping port `:8080`, Grafana dashboards, Fluent Bit DaemonSet, and CloudWatch Logs over PrivateLink. | [`08-observability-telemetry.mmd`](08-observability-telemetry.mmd) | [`08-observability-telemetry.md`](08-observability-telemetry.md) |
-| **09** | [Apache Iceberg ACID Lakehouse Storage](#09--apache-iceberg-acid-lakehouse-storage-architecture) | AWS Glue Data Catalog CAS lock, snapshot hierarchy, metadata tree, Snappy Parquet files, and dead-letter quarantine. | [`09-lakehouse-iceberg.mmd`](09-lakehouse-iceberg.mmd) | [`09-lakehouse-iceberg.md`](09-lakehouse-iceberg.md) |
-| **10** | [CI/CD Pipeline & GitOps Deployment](#10--cicd-pipeline-gitops--infrastructure-lifecycle) | Static testing gates, 5 decoupled Terraform layers, multi-stage Docker build, ECR publishing, Helm releases, and smoke tests. | [`10-cicd-deployment.mmd`](10-cicd-deployment.mmd) | [`10-cicd-deployment.md`](10-cicd-deployment.md) |
-| **11** | [Serverless Alternative Architecture](#11--aws-serverless-alternative-architecture) | AWS Step Functions, Lambda handlers (S1-S6), SQS DLQ, S3 lakehouse, DynamoDB ledger, and Glue Catalog. | [`11-serverless-architecture.mmd`](11-serverless-architecture.mmd) | [`11-serverless-architecture.md`](11-serverless-architecture.md) |
+| **01** | [Complete Serverless Architecture](#01--complete-serverless-architecture) | End-to-end cloud infrastructure, Step Functions, Lambda handlers, S3 Lakehouse, DynamoDB ledger, and SQS DLQ. | [`01-complete-architecture.mmd`](01-complete-architecture.mmd) | [`01-complete-architecture.md`](01-complete-architecture.md) |
+| **02** | [Network Isolation & Zero-Trust](#02--network-isolation--zero-trust-architecture) | VPC endpoints, AWS PrivateLink, Security Group egress controls, and KMS envelope encryption. | [`02-network-zero-trust.mmd`](02-network-zero-trust.mmd) | [`02-network-zero-trust.md`](02-network-zero-trust.md) |
+| **03** | [Compute Architecture & Concurrency](#03--compute-architecture--concurrency-tiering) | Step Functions Distributed Map, Lambda Firecracker microVM concurrency, memory-to-vCPU allocation, and scale-to-zero. | [`03-compute-architecture.mmd`](03-compute-architecture.mmd) | [`03-compute-architecture.md`](03-compute-architecture.md) |
+| **04** | [End-to-End Pipeline & Data Processing Flow](#04--end-to-end-pipeline--data-processing-flow) | CSV ingestion, dynamic schema inspection, multi-tier entity resolution, Iceberg ACID commit, and ML regression. | [`04-pipeline-flow.mmd`](04-pipeline-flow.mmd) | [`04-pipeline-flow.md`](04-pipeline-flow.md) |
+| **05** | [Autoscaling & Event-Driven Concurrency](#05--autoscaling--event-driven-concurrency-lifecycle) | Sub-second cold start (<1.5s), parallel Lambda concurrency burst, and instant scale-to-zero ($0 idle cost). | [`05-autoscaling-lifecycle.mmd`](05-autoscaling-lifecycle.mmd) | [`05-autoscaling-lifecycle.md`](05-autoscaling-lifecycle.md) |
+| **06** | [Lambda Execution Environment & MicroVM Topology](#06--lambda-execution-environment--microvm-topology) | Linux kernel cgroups, /tmp ephemeral NVMe storage, Python 3.12 runtime, and memory boundaries. | [`06-lambda-execution-environment.mmd`](06-lambda-execution-environment.mmd) | [`06-lambda-execution-environment.md`](06-lambda-execution-environment.md) |
+| **07** | [Zero-Trust Security & Identity Architecture](#07--zero-trust-security--identity-architecture) | IAM execution roles, temporary STS tokens, GitHub Actions OIDC federation, and KMS CMK encryption. | [`07-security-identity.mmd`](07-security-identity.mmd) | [`07-security-identity.md`](07-security-identity.md) |
+| **08** | [Observability, Metrics & Centralized Logging](#08--observability-metrics--centralized-logging-architecture) | CloudWatch structured JSON logs, custom metrics namespace, SQS DLQ alarms, and X-Ray distributed tracing. | [`08-observability-telemetry.mmd`](08-observability-telemetry.mmd) | [`08-observability-telemetry.md`](08-observability-telemetry.md) |
+| **09** | [Apache Iceberg ACID Lakehouse Storage](#09--apache-iceberg-acid-lakehouse-storage-architecture) | AWS Glue Data Catalog CAS lock, snapshot hierarchy, Snappy Parquet files, and dead-letter quarantine. | [`09-lakehouse-iceberg.mmd`](09-lakehouse-iceberg.mmd) | [`09-lakehouse-iceberg.md`](09-lakehouse-iceberg.md) |
+| **10** | [CI/CD Pipeline & GitOps Deployment](#10--cicd-pipeline--gitops-deployment-lifecycle) | Static testing gates, Terraform serverless provisioning, automated smoke tests, and verified outputs. | [`10-cicd-deployment.mmd`](10-cicd-deployment.mmd) | [`10-cicd-deployment.md`](10-cicd-deployment.md) |
+| **11** | [Serverless Architectural Blueprint](#11--serverless-architectural-blueprint) | Master Step Functions state machine and 6 micro-functions blueprint. | [`11-serverless-architecture.mmd`](11-serverless-architecture.mmd) | [`11-serverless-architecture.md`](11-serverless-architecture.md) |
 
 ---
 
-## 01 — Complete Platform Architecture
+## 01 — Complete Serverless Architecture
 
 ```mermaid
 flowchart TD
-    subgraph External["External World & Source Data"]
-        S1["Source S1: Supply Chain CSV"]
-        S2["Source S2: Financial Records CSV"]
-        DEV["DevOps / Data Engineer (kubectl & AWS CLI)"]
+    subgraph External["External Triggers & Ingestion Sources"]
+        S1["Source S1: Supply Chain CSV\n(1,200 records)"]
+        S2["Source S2: Financial Records CSV\n(1,200 records)"]
+        CRON["Amazon EventBridge (Scheduled Cron: cron(0 2 * * ? *))"]
+        S3_EVT["S3 ObjectCreated Event (EventBridge)"]
+        DEV["Data / DevOps Engineer (AWS CLI & Terraform)"]
         GHA["GitHub Actions CI/CD (OIDC Federated)"]
     end
 
-    subgraph AWS["AWS Cloud (us-east-1) - Test Environment"]
+    subgraph AWS["AWS Cloud (us-east-1) - Serverless Architecture"]
         subgraph IAM_KMS["Identity & Cryptographic Foundations"]
-            OIDC["AWS IAM OpenID Connect Provider"]
-            KMS["AWS KMS Customer Managed Key (CMK)"]
-            IRSA_RAY["IRSA: ray-workload-role"]
-            IRSA_KARP["IRSA: karpenter-controller-role"]
-            NODE_ROLE["IAM Role: karpenter-node-role"]
+            KMS["AWS KMS Customer Managed Key (CMK)\n(alias/ray-platform-test-key)"]
+            LAMBDA_ROLE["IAM Role: lambda_exec_role\n(S3, DynamoDB, Glue, SQS, Logs)"]
+            SFN_ROLE["IAM Role: step_functions_role\n(InvokeFunction, SQS DLQ)"]
         end
 
-        subgraph VPC["AWS VPC: 10.0.0.0/16 (3 AZs: us-east-1a, 1b, 1c)"]
-            subgraph PublicSubnets["Public Subnets (NAT Gateway & IGW)"]
-                NAT["NAT Gateways (Multi-AZ)"]
-                ALB["Internal Ingress / ALB Controller"]
+        subgraph IngestionLanding["Amazon S3: Raw Landing Zone"]
+            S3_IN["s3://test-ray-platform-data/incoming/\n(Raw Corporate CSVs)"]
+        end
+
+        subgraph OrchestrationEngine["AWS Step Functions State Machine (Orchestrator)"]
+            direction TB
+            START(["State Machine Execution Start"])
+
+            subgraph S1_Stage["Stage 1: Discovery & Idempotency Claim"]
+                L_DISC["AWS Lambda: handler_discovery\n- SHA256 input dataset digest\n- DynamoDB Conditional Put: status=CLAIMED\n- RAM: 512MB | Timeout: 60s"]
             end
 
-            subgraph PrivateEndpoints["VPC Endpoints (AWS PrivateLink)"]
-                VPCE_S3["S3 Gateway Endpoint"]
-                VPCE_DDB["DynamoDB Gateway Endpoint"]
-                VPCE_ECR["ECR API & DKR Interface Endpoints"]
-                VPCE_CW["CloudWatch Logs Interface Endpoint"]
-                VPCE_STS["STS Interface Endpoint"]
-                VPCE_SQS["SQS Interface Endpoint"]
+            subgraph S2_Stage["Stage 2: Dynamic Schema Validation (Distributed Map)"]
+                MAP["Step Functions Distributed Map State\n(Parallel Ingestion across S1 and S2)"]
+                L_VAL_S1["AWS Lambda: handler_validator (S1)\n- Dynamic header normalization\n- Pydantic schema validation\n- RAM: 1024MB | Timeout: 120s"]
+                L_VAL_S2["AWS Lambda: handler_validator (S2)\n- Dynamic header normalization\n- Pydantic schema validation\n- RAM: 1024MB | Timeout: 120s"]
             end
 
-            subgraph EKS["Amazon EKS Cluster: ray-platform-test-eks (v1.30)"]
-                EKS_API["EKS Control Plane & Kubernetes API Server"]
-
-                subgraph SystemNodeGroup["System Capacity: On-Demand Node Group (m5.large)"]
-                    COREDNS["CoreDNS & VPC-CNI"]
-                    KUBERAY["KubeRay Operator (v1.2.2)"]
-                    KARP_CTRL["Karpenter Controller (v1.0.8)"]
-                    PROM["Prometheus Server & Node Exporter"]
-                    GRAFANA["Grafana Dashboards"]
-                    FLUENT["AWS Fluent Bit DaemonSet"]
-                end
-
-                subgraph RayHeadPlacement["Ray Head Placement (On-Demand System Tier)"]
-                    RAY_HEAD["Ray Head Pod (ray-cluster-kuberay-head)\n- GCS Global Control Store\n- In-Tree Autoscaler\n- Dashboard Port: 8265\n- Metrics Port: 8080\n- Custom Resource: entity_resolver_slot: 1"]
-                end
-
-                subgraph KarpenterCompute["Dynamic Compute Layer: Karpenter JIT Provisioned"]
-                    subgraph SpotFleet["Diversified EC2 Spot Instances (m6i, m5, m5a, m6a)"]
-                        RAY_WORKER_1["Ray Worker Pod 1\n- 4 CPU / 16GiB RAM\n- 4GiB /dev/shm tmpfs\n- Plasma Store: 3.6GiB"]
-                        RAY_WORKER_2["Ray Worker Pod 2\n- Ingestion & Validation\n- Feature Extraction"]
-                        RAY_WORKER_N["Ray Worker Pod N\n- Ray Train Distributed ML\n- Scale-to-Zero Capable"]
-                    end
-                end
+            subgraph S3_Stage["Stage 3: Multi-Tier Entity Resolution"]
+                L_RES["AWS Lambda: handler_resolver\n- Exact Tax ID Match (1.0)\n- Fuzzy Levenshtein (>= 0.88)\n- Jurisdiction & Founded Year Corroboration\n- Ambiguity Quarantining\n- RAM: 2048MB | Timeout: 300s"]
             end
+
+            subgraph S4_Stage["Stage 4: Apache Iceberg Lakehouse Sink"]
+                L_ICE["AWS Lambda: handler_iceberg_sink\n- PyIceberg ACID Upsert\n- AWS Glue Catalog Lock / Commit\n- Snappy Parquet Data Files\n- RAM: 2048MB | Timeout: 300s"]
+            end
+
+            subgraph S5_Stage["Stage 5: Machine Learning Training"]
+                L_TRAIN["AWS Lambda: handler_trainer\n- Feature Extraction (Log-Revenue, Age)\n- Gradient Boosting Regressor\n- Asserts R^2 >= 0.85, RMSE, MAE\n- RAM: 3072MB | Timeout: 600s"]
+            end
+
+            subgraph S6_Stage["Stage 6: Finalization & Telemetry"]
+                L_FIN["AWS Lambda: handler_finalizer\n- Updates DynamoDB: status=COMPLETED\n- Emits CloudWatch Custom Metrics\n- RAM: 512MB | Timeout: 60s"]
+            end
+
+            subgraph ErrorHandling["Fault Tolerance & Dead-Letter Routing"]
+                CATCH["Step Functions Catch States.ALL\n(Retry: 3x with Exponential Backoff)"]
+                SQS_DLQ["Amazon SQS Dead-Letter Queue (DLQ)\n(14-Day Message Retention)"]
+                DDB_FAIL["DynamoDB Ledger: status=FAILED"]
+            end
+
+            START --> L_DISC
+            L_DISC --> MAP
+            MAP --> L_VAL_S1
+            MAP --> L_VAL_S2
+            L_VAL_S1 --> L_RES
+            L_VAL_S2 --> L_RES
+            L_RES --> L_ICE
+            L_ICE --> L_TRAIN
+            L_TRAIN --> L_FIN
+
+            L_DISC -.->|Error| CATCH
+            MAP -.->|Error| CATCH
+            L_RES -.->|Error| CATCH
+            L_ICE -.->|Error| CATCH
+            L_TRAIN -.->|Error| CATCH
+            CATCH --> SQS_DLQ
+            CATCH --> DDB_FAIL
         end
 
-        subgraph Eventing["Event-Driven Interruption & Orchestration"]
-            EB_SPOT["AWS EventBridge (Spot Interruption & Rebalance Notice)"]
-            SQS_KARP["SQS Interruption Queue\n(ray-platform-test-eks-karpenter-interruption)"]
-            EB_CRON["EventBridge Cron Trigger (rate: 15m)"]
-            LAMBDA["Discovery Lambda (S3 Poller & Ledger Registrar)"]
+        subgraph StorageLayer["Data Lakehouse, State & Catalog Layer"]
+            DDB[("Amazon DynamoDB: ray_processing_ledger\n(PK: execution_id, SK: timestamp)")]
+            GLUE[("AWS Glue Data Catalog\ncorporate_data_db.corporate_registry")]
+            S3_WH["Amazon S3: iceberg-warehouse/\n(Apache Iceberg v2 Parquet & Avro)"]
+            S3_QUAR["Amazon S3: quarantine/\n(Ambiguous Records Dead-Letter)"]
+            S3_MOD["Amazon S3: models/\n(Trained Regressor revenue_model.joblib)"]
         end
 
-        subgraph Storage["Storage & Transactional Lakehouse"]
-            S3_DATA[("Amazon S3 Data Bucket\n- incoming/ (Raw CSVs)\n- quarantine/ (Ambiguous Rows)\n- iceberg-warehouse/ (Parquet)\n- models/ (LightGBM Artifacts)")]
-            DDB_LEDGER[("DynamoDB Processing Ledger\n(ray_processing_ledger)\n- Conditional Locks\n- Idempotency Tracking")]
-            GLUE_CATALOG[("AWS Glue Data Catalog\n(corporate_data_db)")]
-        end
-
-        subgraph Registry["Container & Artifact Registry"]
-            ECR["Amazon ECR: ray-data-processor"]
-        end
-
-        subgraph Logs["Observability & Auditing"]
-            CW_LOGS["Amazon CloudWatch Logs\n(/aws/eks/ray-platform-test/workloads)"]
+        subgraph TelemetryLayer["Observability & Centralized Logging"]
+            CW_LOGS["Amazon CloudWatch Logs\n(/aws/lambda/sfn-corporate-*)"]
+            CW_METRICS["Amazon CloudWatch Metrics\n(ExecutionDuration, CanonicalRecords, ModelR2)"]
         end
     end
 
-    S1 -->|"Upload Raw CSV"| S3_DATA
-    S2 -->|"Upload Raw CSV"| S3_DATA
-    EB_CRON -->|"Trigger Discovery"| LAMBDA
-    LAMBDA -->|"Inspect S3 incoming/"| S3_DATA
-    LAMBDA <-->|"Acquire Atomic Lease"| DDB_LEDGER
-    LAMBDA -->|"Submit RayJob CRD"| EKS_API
-    DEV -->|"Git Push"| GHA
-    GHA -->|"Authenticate via OIDC"| OIDC
-    GHA -->|"Build & Push Container"| ECR
-    GHA -->|"Deploy Helm & Manifests"| EKS_API
-    EKS_API -->|"Reconcile RayJob"| KUBERAY
-    KUBERAY -->|"Manage Cluster Lifecycle"| RAY_HEAD
-    RAY_HEAD -->|"Workload Demand (Scale 0 to 8)"| RAY_WORKER_1
-    RAY_HEAD -->|"Demand Triggers Unschedulable Pods"| KARP_CTRL
-    KARP_CTRL -->|"Launch EC2 Spot Fleet (<45s)"| SpotFleet
-    EB_SPOT -->|"2-Minute Preemption Warning"| SQS_KARP
-    SQS_KARP -->|"Poll & Proactive Cordon/Drain"| KARP_CTRL
-    RAY_WORKER_1 <-->|"Read Raw CSVs"| S3_DATA
-    RAY_WORKER_1 <-->|"Update Stage Progress"| DDB_LEDGER
-    RAY_WORKER_1 -->|"Commit ACID Upserts"| GLUE_CATALOG
-    RAY_WORKER_1 -->|"Write Parquet & Manifests"| S3_DATA
-    RAY_WORKER_1 -->|"Quarantine Ambiguous Records"| S3_DATA
-    RAY_HEAD -->|"Export Metrics (:8080)"| PROM
-    RAY_WORKER_1 -->|"Export Metrics (:8080)"| PROM
-    PROM -->|"Visualize"| GRAFANA
-    FLUENT -->|"Ship Pod Logs via PrivateLink"| CW_LOGS
+    %% External Trigger Links
+    S1 --> S3_IN
+    S2 --> S3_IN
+    CRON --> START
+    S3_EVT --> START
+    DEV --> START
+    GHA -.-> AWS
+
+    %% Storage Connections
+    S3_IN -.-> L_DISC
+    S3_IN -.-> L_VAL_S1
+    S3_IN -.-> L_VAL_S2
+    L_DISC <-->|Atomic Claim| DDB
+    L_RES --> S3_QUAR
+    L_ICE --> S3_WH
+    L_ICE <-->|Optimistic Lock| GLUE
+    L_TRAIN --> S3_MOD
+    L_FIN -->|Mark Completed| DDB
+
+    %% Observability Connections
+    L_FIN --> CW_METRICS
+    L_DISC -.-> CW_LOGS
+    L_RES -.-> CW_LOGS
+    L_ICE -.-> CW_LOGS
+    L_TRAIN -.-> CW_LOGS
 ```
 
 ---
@@ -141,186 +150,131 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph InternetZone["Public Internet (External)"]
-        CLIENT["Authenticated Developer / CI Runner"]
+    subgraph Identity["Identity & Cryptographic Foundations"]
+        IAM_LAMBDA["IAM Execution Role: lambda_exec_role\n- Temporary STS Web Identity Token (Rotated Hourly)\n- Scoped to exact S3, DynamoDB, Glue ARNs"]
+        IAM_SFN["IAM Execution Role: step_functions_role\n- Restricted to lambda:InvokeFunction\n- Restricted to sqs:SendMessage"]
+        KMS["AWS KMS Customer Managed Key (CMK)\n(alias/ray-platform-test-key)"]
     end
 
-    subgraph AWS_Cloud["AWS Cloud (us-east-1)"]
-        IGW["Internet Gateway (IGW)"]
+    subgraph VPC["AWS Virtual Private Cloud (VPC: 10.0.0.0/16) - Private Subnets"]
+        direction TB
 
-        subgraph VPC["VPC: 10.0.0.0/16 (Isolated Network Boundary)"]
-            subgraph PublicSubnets["Tier 1: Public Subnets (10.0.0.0/20, 10.0.16.0/20, 10.0.32.0/20)"]
-                NAT_A["NAT Gateway (us-east-1a)"]
-                NAT_B["NAT Gateway (us-east-1b)"]
-                ALB_INGRESS["Private/Internal ALB Ingress Controller\n(Port 443 with TLS 1.3 Termination)"]
-            end
-
-            subgraph PrivateComputeSubnets["Tier 2: Private Compute Subnets (10.0.128.0/20, 10.0.144.0/20, 10.0.160.0/20)"]
-                direction TB
-                subgraph SG_ControlPlane["Security Group: EKS Control Plane"]
-                    EKS_ENI["EKS Managed ENIs\n- Private API Server Endpoint (:443)\n- No Public Route"]
-                end
-
-                subgraph SG_SystemNodes["Security Group: System Node Group"]
-                    SYSTEM_NODE["System EC2 Instances (m5.large)\n- KubeRay Operator\n- Karpenter Controller\n- CoreDNS (:53)\n- Prometheus (:9090)"]
-                end
-
-                subgraph SG_KarpenterNodes["Security Group: Karpenter Worker Fleet (karpenter.sh/discovery)"]
-                    HEAD_POD["Ray Head Pod\n- GCS: 6379\n- Client: 10001\n- Dashboard: 8265\n- Metrics: 8080"]
-                    WORKER_PODS["Ray Worker Pods\n- Intra-Ray: 10000-19999\n- Zero Inbound from Internet\n- IMDSv2 Hop Limit = 1"]
-                end
-
-                subgraph K8s_Network_Policy["Kubernetes NetworkPolicy Enforcement (Calico / VPC CNI)"]
-                    NP_INGRESS["Default Deny All Ingress\nAllow Only Head <--> Worker on Ray Ports"]
-                    NP_EGRESS["Restricted Egress\nAllow Only VPC CIDR + AWS PrivateLink Endpoints + DNS:53"]
-                end
-            end
-
-            subgraph IsolatedDataSubnets["Tier 3: Isolated Data Subnets (10.0.192.0/20, 10.0.208.0/20, 10.0.224.0/20)"]
-                DATA_ENIS["Isolated ENIs (No Default Route / No NAT Access)"]
-            end
-
-            subgraph PrivateLinkEndpoints["AWS PrivateLink & Gateway VPC Endpoints (Zero Internet Egress)"]
-                direction LR
-                VPCE_S3_GW["S3 Gateway Endpoint\n(Prefix List: pl-63a5400a)\n(Bucket Policy Restricted)"]
-                VPCE_DDB_GW["DynamoDB Gateway Endpoint\n(Prefix List: pl-6ba54002)\n(Table Policy Restricted)"]
-                VPCE_ECR_API["ECR API Interface Endpoint (:443)"]
-                VPCE_ECR_DKR["ECR DKR Interface Endpoint (:443)"]
-                VPCE_STS["STS Interface Endpoint (:443)"]
-                VPCE_CW["CloudWatch Logs Endpoint (:443)"]
-                VPCE_SQS["SQS Interface Endpoint (:443)"]
-                VPCE_KMS["KMS Interface Endpoint (:443)"]
-            end
+        subgraph LambdaVPC["Serverless Compute Isolation"]
+            L1["Lambda: Discovery (512MB)"]
+            L2["Lambda: Validator (1024MB)"]
+            L3["Lambda: Resolver (2048MB)"]
+            L4["Lambda: Iceberg Sink (2048MB)"]
+            L5["Lambda: ML Trainer (3072MB)"]
+            L6["Lambda: Finalizer (512MB)"]
         end
 
-        subgraph AWSServices["AWS Managed Services (Private Backbone Access Only)"]
-            S3["Amazon S3 Buckets (test-ray-platform-*)"]
-            DDB["Amazon DynamoDB (ray_processing_ledger)"]
-            ECR["Amazon ECR Registry"]
-            CW["Amazon CloudWatch Logs"]
-            STS["AWS Security Token Service (STS)"]
-            SQS["Amazon SQS (Karpenter Interruption)"]
-            KMS["AWS Key Management Service (KMS)"]
+        subgraph SecurityGroup["Security Group: sg-serverless-pipeline"]
+            SG["Inbound: NONE (Deny All Ingress)\nOutbound: Port 443 strictly to VPC Endpoints"]
+        end
+
+        subgraph Endpoints["AWS PrivateLink VPC Endpoints (Zero Internet Gateway)"]
+            VPCE_S3["Amazon S3 Gateway Endpoint\n(com.amazonaws.us-east-1.s3 - $0/GB)"]
+            VPCE_DDB["Amazon DynamoDB Gateway Endpoint\n(com.amazonaws.us-east-1.dynamodb - $0/GB)"]
+            VPCE_GLUE["AWS Glue Interface Endpoint\n(com.amazonaws.us-east-1.glue)"]
+            VPCE_CW["CloudWatch Logs Interface Endpoint\n(com.amazonaws.us-east-1.logs)"]
+            VPCE_SQS["Amazon SQS Interface Endpoint\n(com.amazonaws.us-east-1.sqs)"]
+            VPCE_KMS["AWS KMS Interface Endpoint\n(com.amazonaws.us-east-1.kms)"]
         end
     end
 
-    CLIENT -->|"TLS VPN / Bastion (SSM Session Mgr)"| EKS_ENI
-    IGW -.->|"Egress Only for Updates via NAT"| NAT_A
-    NAT_A -.->|"No Ingress Allowed"| PrivateComputeSubnets
-    EKS_ENI <-->|"Mutual TLS Port 10250 (Kubelet)"| SYSTEM_NODE
-    EKS_ENI <-->|"Mutual TLS Port 10250 (Kubelet)"| HEAD_POD
-    HEAD_POD <-->|"RPC Ports: 6379, 10001, 10000-19999"| WORKER_PODS
-    WORKER_PODS -->|"VPC Route (No NAT cost)"| VPCE_S3_GW
-    WORKER_PODS -->|"VPC Route (No NAT cost)"| VPCE_DDB_GW
-    WORKER_PODS -->|"Private ENI (Port 443)"| VPCE_ECR_API
-    WORKER_PODS -->|"Private ENI (Port 443)"| VPCE_ECR_DKR
-    WORKER_PODS -->|"Private ENI (Port 443)"| VPCE_STS
-    WORKER_PODS -->|"Private ENI (Port 443)"| VPCE_CW
-    WORKER_PODS -->|"Private ENI (Port 443)"| VPCE_SQS
-    WORKER_PODS -->|"Private ENI (Port 443)"| VPCE_KMS
-    VPCE_S3_GW --> S3
-    VPCE_DDB_GW --> DDB
-    VPCE_ECR_API --> ECR
-    VPCE_ECR_DKR --> ECR
-    VPCE_STS --> STS
-    VPCE_CW --> CW
-    VPCE_SQS --> SQS
+    subgraph AWS_Services["Target AWS Managed Storage & State"]
+        S3[("Amazon S3 Lakehouse Bucket\n- Public Access Block: All 4 True\n- KMS CMK Envelope Encryption\n- Bucket Key Enabled")]
+        DDB[("Amazon DynamoDB Ledger\n- KMS CMK Encrypted\n- TLS 1.3 In-Transit")]
+        GLUE_CAT[("AWS Glue Data Catalog\n- IAM Authenticated")]
+        CW_LOGS["Amazon CloudWatch Logs\n- KMS Encrypted Log Groups"]
+        SQS_DLQ["Amazon SQS DLQ\n- KMS Encrypted Queue"]
+    end
+
+    IAM_LAMBDA -.->|Attaches STS Token| LambdaVPC
+    IAM_SFN -.->|Attaches STS Token| LambdaVPC
+    LambdaVPC --- SecurityGroup
+
+    LambdaVPC -->|TLS 1.3 via Gateway| VPCE_S3
+    LambdaVPC -->|TLS 1.3 via Gateway| VPCE_DDB
+    LambdaVPC -->|TLS 1.3 via PrivateLink| VPCE_GLUE
+    LambdaVPC -->|TLS 1.3 via PrivateLink| VPCE_CW
+    LambdaVPC -->|TLS 1.3 via PrivateLink| VPCE_SQS
+    LambdaVPC -->|TLS 1.3 via PrivateLink| VPCE_KMS
+
+    VPCE_S3 --> S3
+    VPCE_DDB --> DDB
+    VPCE_GLUE --> GLUE_CAT
+    VPCE_CW --> CW_LOGS
+    VPCE_SQS --> SQS_DLQ
     VPCE_KMS --> KMS
+    KMS -.->|Envelope Encryption| S3
+    KMS -.->|Envelope Encryption| DDB
+    KMS -.->|Envelope Encryption| CW_LOGS
 ```
 
 ---
 
-## 03 — Compute Architecture & Capacity Tiering
+## 03 — Compute Architecture & Concurrency Tiering
 
 ```mermaid
 flowchart TD
-    subgraph EKS_Cluster["Amazon EKS Cluster: ray-platform-test-eks (Kubernetes v1.30)"]
+    subgraph TriggerSource["Trigger Sources"]
+        EVENT["EventBridge Trigger / S3 PutObject"]
+        CLI["AWS CLI / API Gateway Manual Start"]
+    end
+
+    subgraph StateMachine["AWS Step Functions (Orchestration Engine)"]
+        SF_EXEC["Step Functions Execution Engine\n- State: RUNNING\n- Evaluates ASL JSON\n- Manages Context & Payload Passing"]
+    end
+
+    subgraph ComputeTier["AWS Lambda Micro-Function Compute Tier (Firecracker MicroVMs)"]
         direction TB
 
-        subgraph ControlPlane["AWS Managed Control Plane (Multi-AZ)"]
-            K8S_API["Kubernetes API Server (v1.30)"]
-            ETCD["etcd State Store (Encrypted with AWS KMS)"]
-            K8S_SCHED["kube-scheduler"]
-            ACCESS_ENTRY["EKS Access Entries Engine\n(EC2_LINUX Type - Zero aws-auth ConfigMap)"]
+        subgraph F1["Stage 1: Discovery MicroVM"]
+            M1["Memory: 512 MB\nCPU: ~0.3 vCPU\nTimeout: 60s\nEphemeral: 512 MB /tmp\nRole: SHA256 Hash + DynamoDB Claim"]
         end
 
-        subgraph Tier1_System["Tier 1: Stable System Node Group (EKS Managed - On-Demand)"]
-            direction TB
-            subgraph Node_System["EC2 Instance: m7g.xlarge (Graviton3 On-Demand | us-east-1a)"]
-                SYS_LABELS["Labels: workload-role = ray-head-system\nTaints: None"]
-                
-                subgraph SysComponents["Cluster System Services"]
-                    COREDNS["CoreDNS (2 replicas)"]
-                    VPCCNI["AWS VPC-CNI & Kube-Proxy"]
-                    EBS_CSI["AWS EBS CSI Driver"]
-                end
-
-                subgraph Operators["Platform Controllers"]
-                    KUBERAY["KubeRay Operator (v1.2.2)\n- Reconciles RayJob & RayCluster CRDs"]
-                    KARP_CTRL["Karpenter Controller (v1.0.8)\n- JIT EC2 Fleet Provisioner\n- Polls Interruption SQS"]
-                end
-
-                subgraph ObservabilityStack["Monitoring Stack"]
-                    PROM["Prometheus Server (Scrapes :8080)"]
-                    GRAF["Grafana (Private Dashboards)"]
-                end
-
-                subgraph RayHeadContainer["Ray Head Pod (Stable Orchestrator)"]
-                    HEAD_GCS["Global Control Store (GCS Redis)"]
-                    HEAD_AUTOSCALER["Ray In-Tree Autoscaler\n- Evaluates task backlog\n- idleTimeout: 60s"]
-                    HEAD_RES["Custom Resource: entity_resolver_slot: 1\n(Pins stateful EntityResolver actor)"]
-                end
-            end
+        subgraph F2["Stage 2: Parallel Ingestion (Distributed Map)"]
+            direction LR
+            M2_A["Lambda MicroVM A (S1)\nMemory: 1024 MB (~0.6 vCPU)\nTimeout: 120s\nTask: Supply Chain CSV Normalization"]
+            M2_B["Lambda MicroVM B (S2)\nMemory: 1024 MB (~0.6 vCPU)\nTimeout: 120s\nTask: Financial CSV Normalization"]
         end
 
-        subgraph Tier2_Karpenter["Tier 2: Dynamic Karpenter Spot Compute Layer (Just-In-Time)"]
-            direction TB
-
-            subgraph NodePool_Spot["NodePool: ray-worker-spot (Weight: 100)"]
-                SPOT_SPECS["Taints: workload-role = ray-worker:NoSchedule\nConsolidation: WhenEmptyOrUnderutilized (60s)\nDisruption Budget: 20%\nLimits: 64 vCPUs / 256 GiB RAM"]
-                
-                subgraph DiversifiedPools["Diversified Graviton EC2 Spot Instances (3 AZs x 8 Types = 24 Pools)"]
-                    direction LR
-                    INSTANCE_M7G["m7g.xlarge / 2xlarge\n(AWS Graviton3 ARM64)"]
-                    INSTANCE_M6G["m6g.xlarge / 2xlarge\n(AWS Graviton2 ARM64)"]
-                    INSTANCE_C7G["c7g.2xlarge / 4xlarge\n(Compute Graviton3)"]
-                    INSTANCE_R7G["r7g.xlarge / 2xlarge\n(Memory Graviton3)"]
-                end
-
-                subgraph WorkerPods["Ray Worker Pods (0 to 8 Replicas)"]
-                    WP1["Worker Pod 1\nRequests: 3 CPU / 12Gi\n/dev/shm: 4Gi tmpfs\nPlasma: 3.6Gi"]
-                    WP2["Worker Pod 2\nRequests: 3 CPU / 12Gi\n/dev/shm: 4Gi tmpfs\nPlasma: 3.6Gi"]
-                    WPN["Worker Pod N\nScale-to-Zero Capable\n$0.00 idle cost"]
-                end
-            end
-
-            subgraph NodePool_OnDemand["NodePool: ray-worker-ondemand (Weight: 10)"]
-                OD_FALLBACK["Fallback On-Demand NodePool\n(Triggers only upon 100% Spot Regional Exhaustion)"]
-            end
+        subgraph F3["Stage 3: Multi-Tier Entity Resolution MicroVM"]
+            M3["Memory: 2048 MB\nCPU: ~1.2 vCPU\nTimeout: 300s\nEphemeral: 2048 MB /tmp\nRole: Pairwise Tax ID + Fuzzy Levenshtein (>= 0.88)"]
         end
 
-        subgraph InterruptionEngine["Proactive Spot Interruption Handling"]
-            EVENTBRIDGE["AWS EventBridge\n(EC2 Spot Interruption / Rebalance)"]
-            SQS_QUEUE["SQS Interruption Queue\n(2-Minute Notice Drain)"]
+        subgraph F4["Stage 4: Apache Iceberg Sink MicroVM"]
+            M4["Memory: 2048 MB\nCPU: ~1.2 vCPU\nTimeout: 300s\nRole: PyIceberg ACID Upsert + Glue CAS Commit"]
+        end
+
+        subgraph F5["Stage 5: ML Regressor Training MicroVM"]
+            M5["Memory: 3072 MB\nCPU: ~1.8 vCPU (High Clock Speed)\nTimeout: 600s\nRole: Gradient Boosting Regressor (R^2 >= 0.85)"]
+        end
+
+        subgraph F6["Stage 6: Finalizer & Telemetry MicroVM"]
+            M6["Memory: 512 MB\nCPU: ~0.3 vCPU\nTimeout: 60s\nRole: Mark Ledger COMPLETED + Emit Metrics"]
         end
     end
 
-    K8S_API <--> K8S_SCHED
-    K8S_API <--> KUBERAY
-    K8S_API <--> KARP_CTRL
-    KUBERAY -->|"Deploys & Monitors"| RayHeadContainer
-    HEAD_AUTOSCALER -->|"Requests Worker Replicas (0 to 8)"| K8S_API
-    K8S_SCHED -->|"Fails to Place Worker Pods (Insufficient Capacity)"| WorkerPods
-    WorkerPods -->|"Unschedulable (Pending State)"| KARP_CTRL
-    KARP_CTRL -->|"Direct AWS EC2 Fleet API (<45s)"| DiversifiedPools
-    DiversifiedPools -->|"Node Registers via EKS Access Entry"| ACCESS_ENTRY
-    ACCESS_ENTRY -->|"Authenticates EC2_LINUX"| K8S_API
-    K8S_SCHED -->|"Schedules Pending Workers onto Nodes"| WorkerPods
-    EVENTBRIDGE -->|"2-Min Interruption Notice"| SQS_QUEUE
-    SQS_QUEUE -->|"Karpenter Polls SQS"| KARP_CTRL
-    KARP_CTRL -->|"Proactive Cordon & Evict"| WorkerPods
-    HEAD_AUTOSCALER -->|"Idle > 60s: Scales Workers to 0"| WorkerPods
-    KARP_CTRL -->|"Consolidates & Terminates Empty EC2 Nodes"| DiversifiedPools
+    subgraph ScaleToZero["Instant Scale-to-Zero"]
+        COMPLETE(["Execution Finishes"])
+        ZERO_COST["All 6 MicroVMs Terminate\nActive vCPUs: 0\nActive Memory: 0 MB\nHourly Cost: $0.0000"]
+    end
+
+    EVENT --> SF_EXEC
+    CLI --> SF_EXEC
+
+    SF_EXEC --> M1
+    M1 --> M2_A
+    M1 --> M2_B
+    M2_A --> M3
+    M2_B --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> M6
+    M6 --> COMPLETE
+    COMPLETE --> ZERO_COST
 ```
 
 ---
@@ -329,215 +283,196 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph S0_Ingestion["Stage 0: Ingestion & Trigger"]
-        CSV_S1["Raw S1 CSV: Supply Chain (1,200 rows)"]
-        CSV_S2["Raw S2 CSV: Financial Data (1,200 rows)"]
-        S3_IN["S3: incoming/"]
-        LAMBDA["Discovery Lambda"]
-        DDB_LEDGER[("DynamoDB Ledger: ray_processing_ledger")]
-        K8S_RAYJOB["RayJob Submission (ray-job.yaml)"]
+    subgraph RawData["Raw Ingestion Datasets (2,400 Total Rows)"]
+        S1["supply_chain_data_s1.csv\n(1,200 records - Heterogeneous Columns)"]
+        S2["financial_data_s2.csv\n(1,200 records - Heterogeneous Columns)"]
     end
 
-    subgraph S1_Validation["Stage 1: Dynamic Schema Inspection & Validation"]
-        RAY_DATA_READ["Ray Data: read_csv (Distributed Slices)"]
-        SCHEMA_DETECT["Dynamic Schema Inspector\n- Detect Unknown Columns\n- Identify Tax ID, Name, Revenue Candidates\n- Handle Missing / Corrupt Types"]
-        VALID_RECORDS["Validated Record Stream"]
-        CORRUPT_RECORDS["Unparseable Records"]
-        S3_MALFORMED["S3: dead-letter/malformed/"]
+    subgraph Step1["Stage 1: Discovery & Idempotency Check"]
+        CALC_HASH["Compute SHA256(S1_URI + S2_URI)\nGenerate ExecutionID: sfn-run-<sha256[:16]>"]
+        DDB_CLAIM{"DynamoDB PutItem\nCondition: attribute_not_exists(execution_id)"}
+        EXISTS["Duplicate Execution Detected\n-> Exit Gracefully with Cached Status"]
+        CLAIMED["Ledger Initialized: status=CLAIMED"]
     end
 
-    subgraph S2_Normalization["Stage 2: Canonical Normalization & Cleaning"]
-        CLEAN_TEXT["String Sanitization\n- Lowercase & Unicode normalize\n- Strip Corporate Suffixes (Inc, LLC, Corp, GmbH, Ltd)\n- Whitespace collapsing"]
-        CLEAN_TAX["Tax ID Normalization\n- Strip hyphens, spaces, punctuation\n- Uppercase alphanumeric"]
-        CLEAN_GEO["ISO Country Code Standardization\n- Map aliases to ISO 3166-1 alpha-2"]
+    subgraph Step2["Stage 2: Parallel Dynamic Schema Validation (Distributed Map)"]
+        direction TB
+        MAP_BRANCH["Step Functions Distributed Map (MaxConcurrency: 5)"]
+        NORM_HEADERS["Case-Insensitive Column Alias Detection:\n['corporate_name', 'company_name'] -> entity_name\n['tax_identifier', 'ein'] -> tax_id\n['annual_revenue', 'revenue_usd'] -> annual_revenue"]
+        CLEANSE["Type Coercion & Data Cleansing:\n- Strip currency symbols\n- Parse founded year\n- Uppercase ISO country code"]
+        PYDANTIC["Validate Pydantic Model (CorporateRecordInput)"]
+        VALID_RECS["Normalized In-Memory Records:\n- S1: 1,200 Valid\n- S2: 1,200 Valid"]
     end
 
-    subgraph S3_EntityResolution["Stage 3: Multi-Tier Deterministic Entity Resolution"]
-        ACTOR_CALL["Call EntityResolver Actor\n(Pinned via entity_resolver_slot: 1)"]
-        MATCH_TIER1{"Tier 1:\nExact Tax ID Match?"}
-        MATCH_TIER2{"Tier 2:\nToken Sort Ratio >= 0.90\n& Country / Year Match?"}
-        MATCH_TIER3{"Tier 3:\nAmbiguous Score\n(0.65 <= Ratio < 0.90)?"}
-        ASSIGN_EXISTING["Merge with Existing Entity\n(Assign Known Entity ID)"]
-        ASSIGN_NEW["Mint New Canonical ID\n(UUIDv5: COMP-XXXXXXXX-XXXX)"]
-        QUARANTINE_RECORD["Quarantine Ambiguous Entity\n(Human Review Queue)"]
-        S3_QUARANTINE["S3: quarantine/ambiguous_entities/"]
+    subgraph Step3["Stage 3: Multi-Tier Deterministic Entity Resolution"]
+        COLLECT["Aggregate 2,400 Valid Ingested Records"]
+        
+        subgraph MatchingEngine["EntityResolverEngine Algorithm"]
+            TIER1{"Tier 1: Exact Tax ID Match?\n(Confidence: 1.00)"}
+            TIER2{"Tier 2: Normalized Levenshtein >= 0.88\n+ Country Match + |Year Diff| <= 1?\n(Confidence: 0.92)"}
+            AMBIG{"Ambiguity Threshold?\n(0.65 <= Similarity < 0.88)"}
+            NEW_ENT["Distinct Entity Created\n(UUIDv5 Canonical ID: COMP-XXXXXXXX)"]
+        end
+
+        CANONICAL["1,557 Canonical Merged Entities\n(Enriched with Corroborated Fields)"]
+        QUARANTINE["711 Ambiguous Records\n-> Divert to s3://.../quarantine/"]
     end
 
-    subgraph S4_ML_Training["Stage 4: Ray Train Distributed Machine Learning"]
-        FEATURE_ENG["Feature Engineering\n- Log Transform Target (Annual Revenue)\n- One-Hot Country & Industry Encodings\n- ESG & Risk Score Scaling"]
-        TRAIN_SPLIT["Distributed Train/Test Split (80/20)"]
-        RAY_TRAINER["Ray Train Distributed Regressor\n(Gradient Boosting / LightGBM)"]
-        EVAL_METRICS["Model Evaluation\n- Target R² >= 0.85\n- Calculate RMSE & MAE"]
-        SAVE_MODEL["Persist Model Artifacts\n- S3: models/model.tar.gz\n- S3: models/metrics.json"]
+    subgraph Step4["Stage 4: Apache Iceberg Lakehouse Persistence"]
+        PYICEBERG["PyIceberg Arrow Table Construction"]
+        WRITE_PARQUET["Write Snappy-Compressed Parquet Data Files"]
+        COMMIT_SNAPSHOT["Atomic CAS Commit to AWS Glue Catalog\n- Snapshot ID: e.g. 356891083480308578\n- ACID Transaction Guarantees"]
     end
 
-    subgraph S5_Lakehouse["Stage 5: Apache Iceberg Transactional Lakehouse"]
-        ICEBERG_TABLE[("Apache Iceberg Table:\ncorporate_data_db.corporate_registry")]
-        GLUE_CATALOG[("AWS Glue Data Catalog (Lock & Metastore)")]
-        S3_WAREHOUSE[("S3: iceberg-warehouse/corporate_registry/\n- Data Parquet Files\n- Avro Manifests & Snapshot Logs")]
+    subgraph Step5["Stage 5: Gradient Boosting Regressor Training"]
+        EXTRACT_FEATURES["Feature Engineering:\n- Age = CurrentYear - FoundedYear\n- Employee Count\n- Resolution Confidence Score\n- Target: log1p(annual_revenue)"]
+        TRAIN_EVAL["Train GradientBoostingRegressor (100 Trees, LR: 0.1)\nEvaluate 80/20 Train/Test Split"]
+        ASSERT_R2{"Test R^2 >= 0.85?\n(Achieved: 0.8725)"}
+        SAVE_MODEL["Serialize revenue_model.joblib & metrics.json to S3"]
     end
 
-    subgraph S6_Finalize["Stage 6: Ledger Finalization & Audit"]
-        AUDIT_METRICS["Compile Run Statistics\n- Total Rows Processed\n- Entities Resolved\n- Quarantine Count\n- Model R² Score"]
-        DDB_COMPLETE[("Update DynamoDB Status: COMPLETED\n(Atomic Conditional Update)")]
+    subgraph Step6["Stage 6: Finalization & Audit Telemetry"]
+        UPDATE_DDB["Update DynamoDB Ledger:\n- status = COMPLETED\n- canonical_entities = 1557\n- iceberg_snapshot_id = 356891083480308578\n- model_r2_score = 0.8725"]
+        EMIT_CW["Emit Custom CloudWatch Metrics & JSON Summary"]
     end
 
-    CSV_S1 --> S3_IN
-    CSV_S2 --> S3_IN
-    S3_IN --> LAMBDA
-    LAMBDA <-->|"Conditional Lease Lock"| DDB_LEDGER
-    LAMBDA -->|"Submit Job"| K8S_RAYJOB
-    K8S_RAYJOB --> RAY_DATA_READ
-    RAY_DATA_READ --> SCHEMA_DETECT
-    SCHEMA_DETECT -->|Valid Schema| VALID_RECORDS
-    SCHEMA_DETECT -->|Corrupt Schema| CORRUPT_RECORDS
-    CORRUPT_RECORDS --> S3_MALFORMED
-    VALID_RECORDS --> CLEAN_TEXT
-    CLEAN_TEXT --> CLEAN_TAX
-    CLEAN_TAX --> CLEAN_GEO
-    CLEAN_GEO --> ACTOR_CALL
-    ACTOR_CALL --> MATCH_TIER1
-    MATCH_TIER1 -->|Yes (Confidence: 1.0)| ASSIGN_EXISTING
-    MATCH_TIER1 -->|No| MATCH_TIER2
-    MATCH_TIER2 -->|Yes (Confidence >= 0.90)| ASSIGN_EXISTING
-    MATCH_TIER2 -->|No| MATCH_TIER3
-    MATCH_TIER3 -->|Yes (0.65 - 0.89)| QUARANTINE_RECORD
-    MATCH_TIER3 -->|No (Confidence < 0.65)| ASSIGN_NEW
-    QUARANTINE_RECORD --> S3_QUARANTINE
-    ASSIGN_EXISTING --> FEATURE_ENG
-    ASSIGN_NEW --> FEATURE_ENG
-    FEATURE_ENG --> TRAIN_SPLIT
-    TRAIN_SPLIT --> RAY_TRAINER
-    RAY_TRAINER --> EVAL_METRICS
-    EVAL_METRICS --> SAVE_MODEL
-    ASSIGN_EXISTING --> ICEBERG_TABLE
-    ASSIGN_NEW --> ICEBERG_TABLE
-    ICEBERG_TABLE <-->|"Acquire Catalog Commit Lock"| GLUE_CATALOG
-    ICEBERG_TABLE -->|"Write Parquet & Manifests"| S3_WAREHOUSE
-    ICEBERG_TABLE --> AUDIT_METRICS
-    SAVE_MODEL --> AUDIT_METRICS
-    AUDIT_METRICS --> DDB_COMPLETE
+    S1 --> CALC_HASH
+    S2 --> CALC_HASH
+    CALC_HASH --> DDB_CLAIM
+    DDB_CLAIM -->|Already Exists| EXISTS
+    DDB_CLAIM -->|New Lease| CLAIMED
+    CLAIMED --> MAP_BRANCH
+
+    MAP_BRANCH --> NORM_HEADERS
+    NORM_HEADERS --> CLEANSE
+    CLEANSE --> PYDANTIC
+    PYDANTIC --> VALID_RECS
+    VALID_RECS --> COLLECT
+
+    COLLECT --> TIER1
+    TIER1 -->|Match| CANONICAL
+    TIER1 -->|No Match| TIER2
+    TIER2 -->|Match| CANONICAL
+    TIER2 -->|No Match| AMBIG
+    AMBIG -->|Ambiguous| QUARANTINE
+    AMBIG -->|No Similarity| NEW_ENT
+    NEW_ENT --> CANONICAL
+
+    CANONICAL --> PYICEBERG
+    PYICEBERG --> WRITE_PARQUET
+    WRITE_PARQUET --> COMMIT_SNAPSHOT
+    COMMIT_SNAPSHOT --> EXTRACT_FEATURES
+
+    EXTRACT_FEATURES --> TRAIN_EVAL
+    TRAIN_EVAL --> ASSERT_R2
+    ASSERT_R2 -->|Pass| SAVE_MODEL
+    SAVE_MODEL --> UPDATE_DDB
+    UPDATE_DDB --> EMIT_CW
 ```
 
 ---
 
-## 05 — Two-Level Autoscaling Lifecycle & Spot Interruption
-
-```mermaid
-sequenceDiagram
-    autonumber
-    box rgb(240, 245, 255) "Workload Layer (KubeRay)"
-    participant RayJob as RayJob Pipeline
-    participant Head as Ray Head (Autoscaler)
-    participant K8sAPI as K8s API Server
-    participant Worker as Ray Worker Pods
-    end
-
-    box rgb(255, 248, 240) "Compute Layer (Karpenter v1.0.8)"
-    participant Sched as K8s Scheduler
-    participant Karpenter as Karpenter Controller
-    participant EC2Fleet as AWS EC2 Fleet API
-    participant SpotNode as EC2 Spot Instance
-    end
-
-    box rgb(255, 240, 245) "Interruption Resiliency"
-    participant EventBridge as AWS EventBridge
-    participant SQS as SQS Interruption Queue
-    end
-
-    RayJob->>Head: Submit parallel ingestion & training tasks
-    Head->>Head: Detect pending tasks > CPU slots (Backlog trigger)
-    Head->>K8sAPI: Patch RayCluster replicas (0 -> 4 worker pods)
-    K8sAPI->>Sched: Schedule 4 worker pods
-    Sched-->>K8sAPI: Pods in "Pending" (Insufficient node capacity)
-    Karpenter->>K8sAPI: Watch unschedulable pending pods
-    Karpenter->>Karpenter: Calculate binpack & select cheapest diversified Spot type
-    Karpenter->>EC2Fleet: Request EC2 Spot instance (e.g., m6i.2xlarge)
-    EC2Fleet-->>SpotNode: Launch EC2 instance (AL2023, IMDSv2)
-    SpotNode->>K8sAPI: Register via EKS Access Entry (EC2_LINUX)
-    K8sAPI-->>Sched: Node condition: Ready
-    Sched->>K8sAPI: Bind 4 pending Ray worker pods to Spot Node
-    K8sAPI->>Worker: Start containers (mount 4GiB /dev/shm)
-    Worker->>Head: Connect to GCS (:6379) & register Plasma store
-    Head->>Worker: Dispatch data ingestion & training tasks
-    Worker-->>Head: Tasks completed successfully
-    Head->>Head: Worker idle timer > 60 seconds (idleTimeoutSeconds: 60)
-    Head->>K8sAPI: Scale down replicas (4 -> 0)
-    K8sAPI->>Worker: Terminate worker pods
-    Karpenter->>K8sAPI: Detect node is empty (consolidationPolicy: WhenEmptyOrUnderutilized)
-    Karpenter->>Karpenter: Wait 60s consolidation timer
-    Karpenter->>K8sAPI: Cordon & Drain EC2 Spot Node
-    Karpenter->>EC2Fleet: Terminate EC2 instance
-    EventBridge->>SQS: Send EC2 Spot Interruption / Rebalance event
-    SQS->>Karpenter: Karpenter polls SQS interruption queue
-    Karpenter->>K8sAPI: Immediately cordon affected Spot node
-    Karpenter->>K8sAPI: Initiate graceful pod eviction (eviction timeout: 60s)
-    Karpenter->>EC2Fleet: Proactively request replacement Spot instance
-    Worker->>Head: Report graceful shutdown (Ray task lineage rebuilds state)
-```
-
----
-
-## 06 — Ray Worker Node & Pod Internal Topology
+## 05 — Autoscaling & Event-Driven Concurrency Lifecycle
 
 ```mermaid
 flowchart TD
-    subgraph Host["AWS EC2 Graviton Spot Host (e.g., m7g.xlarge / m7g.2xlarge)"]
-        direction TB
+    subgraph IdleState["1. Idle State (Zero Workload Demand)"]
+        IDLE_SFN["Step Functions: IDLE\nActive Executions: 0"]
+        IDLE_LAMBDA["Lambda Compute Fleet: SCALE-TO-ZERO\nActive MicroVMs: 0\nActive vCPUs: 0 | Active RAM: 0 MB"]
+        IDLE_COST["Billed Compute Cost: $0.000000 / hour"]
+    end
 
-        subgraph OS_Layer["Host Operating System: Ubuntu Linux (EKS Optimized LTS)"]
-            KERNEL["Linux Kernel 6.1 (cgroups v2 enabled)"]
-            IMDS["IMDSv2 (Enforced Hop Limit: 1)"]
-            EBS_DISK["EBS Volume: 50 GiB gp3 (AWS KMS Encrypted)"]
-            ENI["VPC ENI (Allocated Pod IP via AWS VPC-CNI)"]
-        end
+    subgraph BurstTrigger["2. Ingestion Burst Event"]
+        EVENT["EventBridge Cron / S3 PutObject Arrival"]
+        TRIGGER_EXEC["Step Functions: StartExecution\nExecution State: RUNNING"]
+    end
 
-        subgraph Kubelet_Runtime["Kubernetes Node Agents"]
-            KUBELET["Kubelet Daemon (Node Condition: Ready)"]
-            CONTAINERD["containerd Container Runtime"]
-            FLUENT_POD["AWS Fluent Bit DaemonSet Pod (Log Forwarder)"]
-        end
+    subgraph RapidScaling["3. Sub-Second Concurrency Scaling (< 1.5s)"]
+        WARMUP["Firecracker MicroVM Initialization (< 1.2s cold start)"]
+        MAP_BURST["Step Functions Distributed Map Scales Out:\n- Spawns Lambda MicroVM 1 (S1 Validator)\n- Spawns Lambda MicroVM 2 (S2 Validator)\nConcurrency: 2 parallel microVMs"]
+    end
 
-        subgraph Worker_Pod["Ray Worker Pod (app.kubernetes.io/name: ray-worker)"]
+    subgraph StageExecution["4. Dynamic Sequential Stage Transitions"]
+        STAGE_RES["Resolution Stage: 1 MicroVM (2048 MB, ~1.2 vCPU)\nProcesses 2,400 Records in ~28s"]
+        STAGE_SINK["Iceberg Sink Stage: 1 MicroVM (2048 MB, ~1.2 vCPU)\nCommits Lakehouse Snapshot in ~1.1s"]
+        STAGE_TRAIN["Training Stage: 1 MicroVM (3072 MB, ~1.8 vCPU)\nTrains Gradient Boosting Regressor in ~2.2s"]
+        STAGE_FIN["Finalizer Stage: 1 MicroVM (512 MB)\nMarks Ledger COMPLETED in ~280ms"]
+    end
+
+    subgraph CompleteScaleZero["5. Immediate Scale-to-Zero Termination"]
+        CLEANUP["Function Handlers Return 200 OK\nContext Flushed to CloudWatch"]
+        TERMINATE["MicroVMs Terminate Instantly\nActive Concurrency Drops: 2 -> 1 -> 0\nNo 10-Minute Idle Waiting"]
+        ZERO_RETURN["Platform Returns to $0.00 Idle Baseline"]
+    end
+
+    IDLE_LAMBDA --> EVENT
+    EVENT --> TRIGGER_EXEC
+    TRIGGER_EXEC --> WARMUP
+    WARMUP --> MAP_BURST
+    MAP_BURST --> STAGE_RES
+    STAGE_RES --> STAGE_SINK
+    STAGE_SINK --> STAGE_TRAIN
+    STAGE_TRAIN --> STAGE_FIN
+    STAGE_FIN --> CLEANUP
+    CLEANUP --> TERMINATE
+    TERMINATE --> ZERO_RETURN
+    ZERO_RETURN --> IDLE_LAMBDA
+```
+
+---
+
+## 06 — Lambda Execution Environment & MicroVM Topology
+
+```mermaid
+flowchart TD
+    subgraph Host["AWS Bare-Metal Server (Nitro System)"]
+        KVM["Linux Kernel-Based Virtual Machine (KVM)"]
+
+        subgraph FirecrackerVM["Isolated AWS Firecracker MicroVM"]
             direction TB
 
-            subgraph Pod_Security["Pod Security & Identity Context"]
-                SA["ServiceAccount: ray-pipeline-sa (IRSA Workload Identity)"]
-                TOLERATION["Toleration: workload-role=ray-worker:NoSchedule"]
-                AFFINITY["nodeSelector: workload-role=ray-worker"]
+            subgraph MicroVMKernel["MicroVM Dedicated Linux Kernel (v6.x)"]
+                CGROUPS["Linux cgroups v2 (CPU Quotas & Memory Enforcers)"]
+                SECCOMP["seccomp Filter (Restricted Syscall Boundary)"]
             end
 
-            subgraph Memory_Architecture["Memory Architecture & IPC Optimization"]
-                direction LR
-                SHM["/dev/shm tmpfs Mount (4 GiB Memory Backed)"]
-                PLASMA["Apache Arrow Plasma Object Store\n(object-store-memory: 3,865,470,566 bytes ~ 3.6 GiB)\n- Zero-Copy IPC Shared Memory\n- Prevents SIGBUS & Out-Of-Memory"]
-                HEAP["Container Heap & Worker Process Memory (~8.4 GiB)"]
-                SHM --- PLASMA
+            subgraph StorageBoundaries["Ephemeral Storage & Memory Boundaries"]
+                TMP_DISK["Ephemeral Disk: /tmp (512 MB to 2,048 MB)\n- Inode space for PyIceberg local cache\n- Scratch storage for serialized joblib model artifacts"]
+                HEAP_MEM["Hardware-Enforced RAM: 512 MB to 3,072 MB\n- In-Memory PyArrow Table Buffer\n- Python 3.12 Process Heap"]
             end
 
-            subgraph Core_Processes["Ray Worker Processes (3 CPU Allocation)"]
-                RAYLET["Raylet Daemon (Node Agent)\n- Node Manager & Scheduler\n- Heartbeat to GCS (:6379)\n- Exports Prometheus Metrics (:8080)"]
-                WORKER_1["Python Worker Process 1\n- CSV Chunk Ingestion & Schema Check"]
-                WORKER_2["Python Worker Process 2\n- Levenshtein & Token Sort Computation"]
-                WORKER_3["Python Worker Process 3\n- Distributed ML / LightGBM Training"]
-                RAYLET <-->|"Local IPC / Unix Domain Socket"| WORKER_1
-                RAYLET <-->|"Local IPC / Unix Domain Socket"| WORKER_2
-                RAYLET <-->|"Local IPC / Unix Domain Socket"| WORKER_3
+            subgraph RuntimeEnvironment["Language Runtime & Worker Process"]
+                INIT_SYS["AWS Lambda Runtime Bootstrap Engine (Rapid)"]
+                PY_RUNTIME["Python 3.12 Managed Execution Engine"]
+
+                subgraph LoadedLibraries["Pre-Warmed In-Memory Data Science Engines"]
+                    LIB_PYICEBERG["PyIceberg (ACID Lakehouse Client)"]
+                    LIB_SKLEARN["Scikit-Learn (GradientBoostingRegressor)"]
+                    LIB_ARROW["Apache Arrow (PyArrow Columnar Memory)"]
+                    LIB_PANDAS["Pandas DataFrames"]
+                    LIB_BOTO3["AWS SDK (boto3 - S3/DynamoDB/Glue/SQS)"]
+                end
+
+                subgraph HandlerSlot["Invoked Handler Execution Slot"]
+                    HANDLER["handlers.py Entry Point:\n- handler_discovery\n- handler_validator\n- handler_resolver\n- handler_iceberg_sink\n- handler_trainer\n- handler_finalizer"]
+                end
             end
 
-            subgraph Custom_Resources["Custom Resources Advertisement"]
-                SLOT["Custom Resource: entity_resolver_slot: 1\n(Controls actor placement boundaries)"]
+            subgraph TelemetryAgent["Telemetry & Log Forwarding"]
+                LOG_AGENT["CloudWatch Logs Streaming Daemon\n(Structured JSON Log Buffer)"]
             end
         end
     end
 
-    KERNEL --> CONTAINERD
-    CONTAINERD --> Worker_Pod
-    SHM -->|"Fast Shared Memory Access"| WORKER_1
-    SHM -->|"Fast Shared Memory Access"| WORKER_2
-    SHM -->|"Fast Shared Memory Access"| WORKER_3
-    KUBELET <--> CONTAINERD
-    FLUENT_POD -->|"Tail Container Logs: /var/log/pods"| Worker_Pod
+    KVM --> FirecrackerVM
+    CGROUPS --> HEAP_MEM
+    SECCOMP --> RuntimeEnvironment
+    INIT_SYS --> PY_RUNTIME
+    PY_RUNTIME --> LoadedLibraries
+    LoadedLibraries --> HANDLER
+    HANDLER --> TMP_DISK
+    HANDLER --> HEAP_MEM
+    HANDLER --> LOG_AGENT
 ```
 
 ---
@@ -546,54 +481,40 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph Identity_Providers["Identity & Authentication Providers"]
-        AWS_IAM["AWS Identity & Access Management (IAM)"]
-        OIDC_EKS["EKS IAM OpenID Connect (OIDC) Provider\noidc.eks.us-east-1.amazonaws.com/id/..."]
-        GHA_OIDC["GitHub Actions OIDC Provider\ntoken.actions.githubusercontent.com"]
+    subgraph IdentityFederation["Zero-Trust Identity Federation"]
+        GHA["GitHub Actions CI/CD Pipeline"]
+        AWS_OIDC["AWS IAM OpenID Connect (OIDC) Provider\n(token.actions.githubusercontent.com)"]
+        DEPLOY_ROLE["IAM Role: github-actions-serverless-deployer\n(Condition: repo:org/repo:ref:refs/heads/serverless)"]
     end
 
-    subgraph EKS_Auth["EKS Modern Authentication Engine"]
-        ACCESS_ENTRY["EKS Access Entries (v1.30+)\n- Zero aws-auth ConfigMap\n- Principal: karpenter-node-role\n- Type: EC2_LINUX"]
-        K8S_RBAC["Kubernetes RBAC (ClusterRole / RoleBinding)\n- Principle of Least Privilege\n- Namespace Scoped: ray-system"]
+    subgraph RuntimeWorkloadIdentity["Serverless Workload Identity (AWS Native STS)"]
+        LAMBDA_EXEC_ROLE["IAM Role: lambda_exec_role\n- Temporary 1-Hour STS Credentials\n- Zero Long-Lived API Keys"]
+        SFN_ROLE["IAM Role: step_functions_role\n- Restricted to lambda:InvokeFunction\n- Restricted to sqs:SendMessage"]
     end
 
-    subgraph ServiceAccounts["Kubernetes ServiceAccounts (IRSA Bound)"]
-        SA_RAY["ServiceAccount: ray-pipeline-sa\nannotation: eks.amazonaws.com/role-arn = ray-workload-role"]
-        SA_KARP["ServiceAccount: karpenter\nannotation: eks.amazonaws.com/role-arn = karpenter-controller-role"]
+    subgraph CryptographicFoundations["Cryptographic Key Management"]
+        KMS_CMK["AWS KMS Customer Managed Key (CMK)\nKey ID: alias/ray-platform-test-key\n- Automatic 365-day rotation\n- Key Policy restricting usage to Lambda role"]
     end
 
-    subgraph Cryptographic_Foundation["Cryptographic Encryption Layer (AWS KMS)"]
-        KMS_CMK["AWS KMS Customer Managed Key (CMK)\nalias/ray-platform-test-key\n- Automatic 1-Year Key Rotation\n- Enforces Envelope Encryption"]
+    subgraph ResourcePolicies["Least-Privilege Resource Policies & Endpoints"]
+        S3_POLICY["Amazon S3 Lakehouse Bucket Policy:\n- Deny Insecure HTTP (aws:SecureTransport: false)\n- Deny Unencrypted Uploads (s3:x-amz-server-side-encryption)\n- Block All 4 Public Access Settings"]
+        DDB_POLICY["DynamoDB Table Policy:\n- SSE Specification Enabled (KMS)\n- Attribute-level conditional write enforcement"]
+        GLUE_POLICY["AWS Glue Data Catalog Policy:\n- Database & Table IAM authentication only"]
+        SQS_POLICY["SQS DLQ Policy:\n- SSE-KMS Encrypted\n- Strictly allows SendMessage from Step Functions"]
     end
 
-    subgraph AWS_Resources["Protected AWS Resources (Encrypted at Rest & in Transit)"]
-        S3_DATA[("Amazon S3 Buckets\n- Server-Side Encryption: aws:kms\n- Bucket Policy: Deny Non-TLS (aws:SecureTransport)\n- Block All Public Access: TRUE")]
-        DDB[("Amazon DynamoDB: ray_processing_ledger\n- KMS Managed Encryption\n- Point-In-Time Recovery (PITR) Enabled")]
-        EBS[("EC2 Host EBS Volumes (gp3)\n- KMS CMK Encrypted Blocks")]
-        SQS_INT[("SQS Interruption Queue\n- KMS SQS SSE Enabled")]
-        ECR_REG[("Amazon ECR: ray-data-processor\n- KMS Encryption & Image Scan On Push")]
-    end
+    GHA -->|1. Presents JWT Token| AWS_OIDC
+    AWS_OIDC -->|2. Validates Claims & Issues STS Session| DEPLOY_ROLE
+    DEPLOY_ROLE -->|3. Deploys Serverless IaC| RuntimeWorkloadIdentity
 
-    subgraph Pod_Runtime_Security["Pod & Host Hardening (Defense-in-Depth)"]
-        IMDSV2["IMDSv2 Enforced\n- HttpTokens: Required\n- HttpPutResponseHopLimit: 1\n(Blocks Pod Credential Theft)"]
-        SEC_CTX["Pod SecurityContext\n- allowPrivilegeEscalation: false\n- readOnlyRootFilesystem: true (where feasible)\n- drop: ALL capabilities"]
-        NET_POL["Kubernetes NetworkPolicy\n- Default Deny Ingress\n- Whitelist Intra-Ray RPC (:6379, :10001)"]
-    end
+    LAMBDA_EXEC_ROLE -->|Reads/Writes Data Files| S3_POLICY
+    LAMBDA_EXEC_ROLE -->|Claims/Finalizes Leases| DDB_POLICY
+    LAMBDA_EXEC_ROLE -->|Updates Table Pointer| GLUE_POLICY
+    SFN_ROLE -->|Enqueues on Failure| SQS_POLICY
 
-    OIDC_EKS --> SA_RAY
-    OIDC_EKS --> SA_KARP
-    GHA_OIDC -->|"Federated CI/CD AssumeRole"| AWS_IAM
-    AWS_IAM --> ACCESS_ENTRY
-    SA_RAY -->|"Assumes via STS AssumeRoleWithWebIdentity"| AWS_IAM
-    SA_KARP -->|"Assumes via STS AssumeRoleWithWebIdentity"| AWS_IAM
-    KMS_CMK -.->|"Encrypts Data at Rest"| S3_DATA
-    KMS_CMK -.->|"Encrypts Ledger at Rest"| DDB
-    KMS_CMK -.->|"Encrypts Node Volumes"| EBS
-    KMS_CMK -.->|"Encrypts Interruption Messages"| SQS_INT
-    KMS_CMK -.->|"Encrypts Container Images"| ECR_REG
-    ACCESS_ENTRY --> EBS
-    IMDSV2 --- SEC_CTX
-    SEC_CTX --- NET_POL
+    KMS_CMK -.->|Envelope Encryption| S3_POLICY
+    KMS_CMK -.->|Envelope Encryption| DDB_POLICY
+    KMS_CMK -.->|Envelope Encryption| SQS_POLICY
 ```
 
 ---
@@ -602,51 +523,76 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph Workload_EKS["Amazon EKS Workload Pods (ray-system namespace)"]
-        HEAD_METRICS["Ray Head Pod\n- Metrics Server (:8080)\n- Ray Dashboard (:8265)\n- Log Stream: stdout / stderr"]
-        WORKER_METRICS["Ray Worker Pods\n- Metrics Server (:8080)\n- Plasma Store Stats\n- Log Stream: stdout / stderr"]
+    subgraph ExecutionPlane["Serverless Workload Execution"]
+        SFN["AWS Step Functions State Machine\n(Detailed Execution History & Step Transitions)"]
+        L1["Lambda: Discovery (512MB)"]
+        L2["Lambda: Validator (1024MB)"]
+        L3["Lambda: Resolver (2048MB)"]
+        L4["Lambda: Iceberg Sink (2048MB)"]
+        L5["Lambda: ML Trainer (3072MB)"]
+        L6["Lambda: Finalizer (512MB)"]
+        DLQ["Amazon SQS Dead-Letter Queue (DLQ)"]
     end
 
-    subgraph Prometheus_Stack["Prometheus Monitoring Stack"]
-        POD_MONITOR["Prometheus PodMonitor CRD\n(ray-head-monitor & ray-worker-monitor)\n- Scrape Interval: 15s\n- Port: 8080"]
-        PROM_SERVER["Prometheus Server\n- Time Series Database (TSDB)\n- Evaluates AlertRules"]
-        GRAFANA["Grafana Visualizer\n- Ray Cluster Health Dashboard\n- Memory & Plasma Pressure\n- Active Actor / Task Counts"]
+    subgraph CentralizedTelemetry["Amazon CloudWatch Observability Suite"]
+        direction TB
+
+        subgraph LogStreams["Structured JSON Log Groups (14-Day Retention)"]
+            CW_L1["/aws/lambda/sfn-corporate-discovery"]
+            CW_L2["/aws/lambda/sfn-corporate-validator"]
+            CW_L3["/aws/lambda/sfn-corporate-resolver"]
+            CW_L4["/aws/lambda/sfn-corporate-iceberg-sink"]
+            CW_L5["/aws/lambda/sfn-corporate-trainer"]
+            CW_L6["/aws/lambda/sfn-corporate-finalizer"]
+        end
+
+        subgraph CustomMetrics["CloudWatch Custom Metrics Namespace: CorporatePlatform"]
+            M_DUR["Metric: PipelineExecutionDuration (Seconds)"]
+            M_CAN["Metric: CanonicalEntitiesCount (1557)"]
+            M_QUAR["Metric: QuarantinedEntitiesCount (711)"]
+            M_R2["Metric: ModelR2Score (0.8725)"]
+            M_SNAP["Metric: IcebergSnapshotID"]
+        end
+
+        subgraph Alarms["Operational Alarms & DLQ Alerts"]
+            ALARM_DLQ["CloudWatch Alarm: SQS_DLQ_Messages_Present\nThreshold: VisibleMessages > 0"]
+            ALARM_FAIL["CloudWatch Alarm: StepFunctions_Execution_Failed\nThreshold: FailedExecutions >= 1"]
+        end
+
+        subgraph XRay["AWS X-Ray Distributed Tracing"]
+            TRACE["End-to-End Execution Trace Map:\nStep Functions -> Lambda Invocations -> S3/DynamoDB SDK Calls"]
+        end
     end
 
-    subgraph Logging_Stack["Centralized Logging Stack"]
-        HOST_LOGS["Host Path: /var/log/pods/ray-system_*"]
-        FLUENT_BIT["AWS Fluent Bit DaemonSet\n- Multiline Parser\n- Kubernetes Metadata Filter\n- Buffer & Chunking Engine"]
-        CW_LOGS[("Amazon CloudWatch Logs\nLog Group: /aws/eks/ray-platform-test/workloads\n- Retention: 30 Days\n- Encrypted via KMS")]
+    subgraph Dashboards["Platform Operator Visualization"]
+        CW_DASH["CloudWatch Executive Dashboard:\n- End-to-end pipeline duration trends\n- Entity deduplication yield over time\n- Revenue ML model test R^2 scores"]
+        SNS_ALERT["Amazon SNS Notification\n(Alerts On-Call Platform Engineer)"]
     end
 
-    subgraph Alerting_Events["Alerting & EventBridge Alarms"]
-        CW_ALARMS["CloudWatch Metric Alarms\n- RayHeadOOM\n- SpotInterruptionSpike\n- PipelineFailureRate"]
-        SNS_TOPIC["Amazon SNS Topic\n(Platform Alerts)"]
-    end
+    L1 --> CW_L1
+    L2 --> CW_L2
+    L3 --> CW_L3
+    L4 --> CW_L4
+    L5 --> CW_L5
+    L6 --> CW_L6
 
-    subgraph Secure_Operator_Access["Secure Operator & Data Scientist Access"]
-        ADMIN["Data Scientist / SRE"]
-        PORT_FWD["kubectl port-forward (:8265 / :9090 / :3000)"]
-        PRIVATE_ALB["Internal ALB + TLS\n(Private Ingress)"]
-    end
+    L6 --> M_DUR
+    L6 --> M_CAN
+    L6 --> M_QUAR
+    L6 --> M_R2
+    L6 --> M_SNAP
 
-    HEAD_METRICS -->|"Expose /metrics"| POD_MONITOR
-    WORKER_METRICS -->|"Expose /metrics"| POD_MONITOR
-    POD_MONITOR -->|"Scrape Targets"| PROM_SERVER
-    PROM_SERVER -->|"Query Metrics"| GRAFANA
-    HEAD_METRICS -.->|"Write Pod Logs"| HOST_LOGS
-    WORKER_METRICS -.->|"Write Pod Logs"| HOST_LOGS
-    HOST_LOGS --> FLUENT_BIT
-    FLUENT_BIT -->|"Ship via PrivateLink (Port 443)"| CW_LOGS
-    PROM_SERVER -.->|"Push High Memory Alert"| CW_ALARMS
-    CW_LOGS -->|"Metric Filters"| CW_ALARMS
-    CW_ALARMS --> SNS_TOPIC
-    ADMIN --> PORT_FWD
-    ADMIN --> PRIVATE_ALB
-    PORT_FWD --> HEAD_METRICS
-    PORT_FWD --> PROM_SERVER
-    PORT_FWD --> GRAFANA
-    PRIVATE_ALB --> HEAD_METRICS
+    SFN -.-> TRACE
+    L1 -.-> TRACE
+    L3 -.-> TRACE
+    L5 -.-> TRACE
+
+    DLQ --> ALARM_DLQ
+    SFN --> ALARM_FAIL
+
+    ALARM_DLQ --> SNS_ALERT
+    ALARM_FAIL --> SNS_ALERT
+    CustomMetrics --> CW_DASH
 ```
 
 ---
@@ -655,121 +601,100 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph Compute_Engines["Compute & Query Layer"]
-        RAY_WORKER["Ray Worker (PyIceberg / DuckDB / PySpark)"]
-        ATHENA["Amazon Athena (Serverless SQL Querying)"]
+    subgraph ComputeEngines["Serverless Compute & Analytics Engines"]
+        LAMBDA_SINK["AWS Lambda: handler_iceberg_sink\n(PyIceberg ACID Lakehouse Writer)"]
+        ATHENA["Amazon Athena\n(Serverless SQL Query Engine)"]
     end
 
-    subgraph Catalog_Layer["Catalog & Metastore (ACID Lock Manager)"]
-        GLUE_CATALOG[("AWS Glue Data Catalog\nDatabase: corporate_data_db\nTable: corporate_registry\n- Atomic CAS Commit Lock\n- Points to: Current Table Metadata")]
+    subgraph CatalogLayer["Metastore & Transactional Lock Manager"]
+        GLUE_CATALOG[("AWS Glue Data Catalog\nDatabase: corporate_data_db\nTable: corporate_registry\n- Atomic CAS Commit Lock\n- Points to Current Snapshot Metadata")]
     end
 
-    subgraph S3_Metadata_Tree["S3 Iceberg Metadata Tree (iceberg-warehouse/corporate_registry/metadata/)"]
+    subgraph S3_MetadataTree["S3 Iceberg Metadata Tree (iceberg-warehouse/corporate_registry/metadata/)"]
         direction TB
 
         META_JSON["Table Metadata File (v2.metadata.json)\n- Schema Definition & Field IDs\n- Partition Spec\n- Snapshot History & Current Snapshot ID"]
 
-        SNAP_LIST["Manifest List File (snap-9182371982.avro)\n- List of Manifest Files\n- Snapshot Summary & Added/Deleted Counts\n- Partition Bounds for Fast Pruning"]
+        SNAP_LIST["Manifest List File (snap-356891083480308578.avro)\n- List of Manifest Files\n- Snapshot Summary & Added/Deleted Counts\n- Partition Bounds for Fast Pruning"]
 
-        subgraph Manifest_Files["Manifest Files (.avro)"]
+        subgraph ManifestFiles["Manifest Files (.avro)"]
             M1["Manifest File 1 (m1.avro)\n- File Paths\n- Column Min/Max Stats\n- Null Counts & Row Counts"]
-            M2["Manifest File 2 (m2.avro)\n- File Paths\n- Column Min/Max Stats\n- Null Counts & Row Counts"]
         end
     end
 
-    subgraph S3_Data_Files["S3 Data Files (iceberg-warehouse/corporate_registry/data/)"]
-        direction LR
-        PARQUET_1["Parquet Data File 1\n(part-00000-snappy.parquet)\n- Snappy Compressed\n- Dictionary Encoded"]
-        PARQUET_2["Parquet Data File 2\n(part-00001-snappy.parquet)\n- Snappy Compressed\n- Dictionary Encoded"]
-        PARQUET_N["Parquet Data File N\n(part-00002-snappy.parquet)\n- Columnar Layout"]
+    subgraph S3_DataFiles["S3 Data Files (iceberg-warehouse/corporate_registry/data/)"]
+        PARQUET_1["Parquet Data File 1\n(part-00000-snappy.parquet)\n- Snappy Compressed\n- Dictionary Encoded\n- 1,557 Canonical Entities"]
     end
 
-    subgraph Quarantine_Storage["Isolation Storage (Corrupt & Ambiguous Records)"]
-        S3_QUARANTINE[("S3: quarantine/ambiguous_entities/\n- Ambiguous Match Ratio (0.65 - 0.89)\n- Raw Corrupt CSV Rows\n- Isolated from Lakehouse")]
+    subgraph QuarantineStorage["Anomaly Dead-Letter Isolation Pool"]
+        S3_QUARANTINE[("S3: quarantine/ambiguous_entities/\n- Ambiguous Match Ratio (0.65 - 0.87)\n- 711 Quarantined Corporate Records\n- Completely Isolated from Lakehouse")]
     end
 
-    RAY_WORKER -->|"1. Read Current Metadata Pointer"| GLUE_CATALOG
+    LAMBDA_SINK -->|"1. Read Current Metadata Pointer"| GLUE_CATALOG
     ATHENA -->|"1. Read Current Metadata Pointer"| GLUE_CATALOG
     GLUE_CATALOG -->|"2. Return Pointer to v2.metadata.json"| META_JSON
     META_JSON -->|"3. References Current Snapshot"| SNAP_LIST
     SNAP_LIST -->|"4. Reads Partition Summaries"| M1
-    SNAP_LIST -->|"4. Reads Partition Summaries"| M2
     M1 -->|"5. Predicate Pushdown Pruning"| PARQUET_1
-    M2 -->|"5. Predicate Pushdown Pruning"| PARQUET_2
-    M2 -->|"5. Predicate Pushdown Pruning"| PARQUET_N
-    RAY_WORKER -->|"6a. Stage New Data Files"| S3_Data_Files
-    RAY_WORKER -->|"6b. Write New Manifest & Snapshot"| S3_Metadata_Tree
-    RAY_WORKER -->|"6c. Atomic Compare-And-Swap (CAS) Lock"| GLUE_CATALOG
-    RAY_WORKER -.->|"Divert Unmatched Ambiguities"| S3_QUARANTINE
+
+    LAMBDA_SINK -->|"6a. Stage New Data Files"| S3_DataFiles
+    LAMBDA_SINK -->|"6b. Write New Manifest & Snapshot"| S3_MetadataTree
+    LAMBDA_SINK -->|"6c. Atomic CAS Lock Commit"| GLUE_CATALOG
+    LAMBDA_SINK -.->|"Divert Ambiguities"| S3_QUARANTINE
 ```
 
 ---
 
-## 10 — CI/CD Pipeline, GitOps & Infrastructure Lifecycle
+## 10 — CI/CD Pipeline & GitOps Deployment Lifecycle
 
 ```mermaid
 flowchart TD
-    subgraph Source_Control["Source Control & Developer Workstation"]
-        DEV["Platform / ML Engineer"]
-        GIT_REPO["GitHub Repository: main branch"]
-        MAKEFILE["Unified Makefile (make tf-apply-all / make deploy-all)"]
+    subgraph SourceControl["Source Control & Developer Workstation"]
+        DEV["Data / DevOps Engineer"]
+        GIT_REPO["GitHub Repository: serverless branch"]
+        MAKEFILE["Unified Makefile (make tf-plan-serverless / make e2e-serverless-local)"]
     end
 
     subgraph GHA_Workflow["GitHub Actions CI/CD Pipeline (.github/workflows/)"]
         direction TB
 
         subgraph Stage_Lint["Stage 1: Static Analysis & Unit Tests"]
-            TEST_UNIT["make test-unit\n(Pytest: 7/7 Passing)"]
-            TF_LINT["make lint-tf\n(Canonical Formatting)"]
+            TEST_UNIT["make test-serverless\n(Pytest: 5/5 Passing in ~96s)"]
+            TF_LINT["make lint-tf\n(Canonical Formatting Check)"]
             REPO_VAL["./scripts/validate_repo.sh\n(Layout, Credentials, Syntax)"]
-            K8S_VAL["./scripts/validate_k8s_manifests.sh\n(YAML, Resources, CRDs)"]
         end
 
         subgraph Stage_Auth["Stage 2: Zero-Trust Cloud Authentication"]
-            GHA_STS["AWS OIDC Federation\n(aws-actions/configure-aws-credentials)\n- Role: gha-deployment-role\n- Zero Long-Lived Secrets"]
+            GHA_STS["AWS OIDC Federation\n(aws-actions/configure-aws-credentials)\n- Role: gha-serverless-deployer\n- Zero Long-Lived Secrets"]
         end
 
-        subgraph Stage_Terraform["Stage 3: Terraform Layered Provisioning"]
-            TF_BOOT["01-bootstrap: S3 State Bucket & Lock Table"]
-            TF_NET["02-network: VPC, 3 AZs, PrivateLink Endpoints"]
-            TF_EKS["03-eks: EKS 1.30, System NodeGroup, Karpenter Module"]
-            TF_DATA["04-data: S3 Buckets, DynamoDB Ledger, KMS CMK, Glue"]
-            TF_PLAT["05-platform: ECR Repository & Base Platform Config"]
-            TF_BOOT --> TF_NET --> TF_EKS --> TF_DATA --> TF_PLAT
+        subgraph Stage_Terraform["Stage 3: Serverless Terraform Provisioning"]
+            TF_INIT["make tf-init-serverless\n(Download AWS & Archive Providers)"]
+            TF_VAL["make tf-validate-serverless\n(Validate ASL & HCL Syntax)"]
+            TF_PLAN["make tf-plan-serverless\n(Plan State Machine, Lambdas, SQS, IAM)"]
+            TF_APPLY["terraform apply -auto-approve\n(Deploys complete stack in < 90s)"]
+            TF_INIT --> TF_VAL --> TF_PLAN --> TF_APPLY
         end
 
-        subgraph Stage_Docker["Stage 4: Container Build & Push"]
-            DOCKER_BUILD["Docker Build (Multi-Stage Build)\n- Base: Ray 2.40.0-py310\n- Dependencies: PyIceberg, LightGBM, AWS SDK"]
-            ECR_PUSH["Docker Push to Amazon ECR\n(123456789012.dkr.ecr.us-east-1.amazonaws.com)"]
-        end
-
-        subgraph Stage_K8s["Stage 5: Kubernetes & Helm GitOps Deployment"]
-            HELM_KARP["Helm Install Karpenter v1.0.8"]
-            APPLY_CRDS["kubectl apply:\n- EC2NodeClass\n- NodePool (Spot & On-Demand)"]
-            HELM_KUBERAY["Helm Install KubeRay Operator v1.2.2"]
-            APPLY_RAYCLUSTER["kubectl apply:\n- ray-cluster.yaml\n- ray-podmonitor.yaml\n- rbac.yaml"]
-        end
-
-        subgraph Stage_Verification["Stage 6: Smoke Test & Job Execution"]
-            SMOKE_TEST["make ray-smoke-test\n(Submit lightweight Ray job)"]
-            JOB_SUBMIT["Submit RayJob CRD\n(Data Processing & LightGBM Training)"]
-            E2E_VERIFY["make e2e-verify\n(Assert Iceberg snapshot & DDB ledger)"]
+        subgraph Stage_Verification["Stage 4: Automated Cloud Smoke Test"]
+            TRIGGER_SFN["aws stepfunctions start-execution\n(Submit test pipeline execution)"]
+            POLL_EXEC["Poll Execution Status -> SUCCEEDED"]
+            ASSERT_OUTPUTS["Assert Iceberg Snapshot ID & DynamoDB Ledger Status: COMPLETED"]
+            TRIGGER_SFN --> POLL_EXEC --> ASSERT_OUTPUTS
         end
     end
 
-    DEV -->|"git push origin main"| GIT_REPO
+    DEV -->|"git push origin serverless"| GIT_REPO
     DEV -.->|"Local Orchestration"| MAKEFILE
     GIT_REPO --> Stage_Lint
     Stage_Lint --> Stage_Auth
     Stage_Auth --> Stage_Terraform
-    Stage_Terraform --> Stage_Docker
-    Stage_Docker --> Stage_K8s
-    Stage_K8s --> Stage_Verification
+    Stage_Terraform --> Stage_Verification
 ```
 
 ---
 
-## 11 — AWS Serverless Alternative Architecture
+## 11 — Serverless Architectural Blueprint
 
 ```mermaid
 flowchart TD

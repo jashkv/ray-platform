@@ -1,102 +1,87 @@
 flowchart TD
-    %% End-to-End Data Processing Pipeline Flow
-    subgraph S0_Ingestion["Stage 0: Ingestion & Trigger"]
-        CSV_S1["Raw S1 CSV: Supply Chain (1,200 rows)"]
-        CSV_S2["Raw S2 CSV: Financial Data (1,200 rows)"]
-        S3_IN["S3: incoming/"]
-        LAMBDA["Discovery Lambda"]
-        DDB_LEDGER[("DynamoDB Ledger: ray_processing_ledger")]
-        K8S_RAYJOB["RayJob Submission (ray-job.yaml)"]
+    %% Serverless Pipeline Data Processing Flow
+    subgraph RawData["Raw Ingestion Datasets (2,400 Total Rows)"]
+        S1["supply_chain_data_s1.csv\n(1,200 records - Heterogeneous Columns)"]
+        S2["financial_data_s2.csv\n(1,200 records - Heterogeneous Columns)"]
     end
 
-    subgraph S1_Validation["Stage 1: Dynamic Schema Inspection & Validation"]
-        RAY_DATA_READ["Ray Data: read_csv (Distributed Slices)"]
-        SCHEMA_DETECT["Dynamic Schema Inspector\n- Detect Unknown Columns\n- Identify Tax ID, Name, Revenue Candidates\n- Handle Missing / Corrupt Types"]
-        VALID_RECORDS["Validated Record Stream"]
-        CORRUPT_RECORDS["Unparseable Records"]
-        S3_MALFORMED["S3: dead-letter/malformed/"]
+    subgraph Step1["Stage 1: Discovery & Idempotency Check"]
+        CALC_HASH["Compute SHA256(S1_URI + S2_URI)\nGenerate ExecutionID: sfn-run-<sha256[:16]>"]
+        DDB_CLAIM{"DynamoDB PutItem\nCondition: attribute_not_exists(execution_id)"}
+        EXISTS["Duplicate Execution Detected\n-> Exit Gracefully with Cached Status"]
+        CLAIMED["Ledger Initialized: status=CLAIMED"]
     end
 
-    subgraph S2_Normalization["Stage 2: Canonical Normalization & Cleaning"]
-        CLEAN_TEXT["String Sanitization\n- Lowercase & Unicode normalize\n- Strip Corporate Suffixes (Inc, LLC, Corp, GmbH, Ltd)\n- Whitespace collapsing"]
-        CLEAN_TAX["Tax ID Normalization\n- Strip hyphens, spaces, punctuation\n- Uppercase alphanumeric"]
-        CLEAN_GEO["ISO Country Code Standardization\n- Map aliases to ISO 3166-1 alpha-2"]
+    subgraph Step2["Stage 2: Parallel Dynamic Schema Validation (Distributed Map)"]
+        direction TB
+        MAP_BRANCH["Step Functions Distributed Map (MaxConcurrency: 5)"]
+        NORM_HEADERS["Case-Insensitive Column Alias Detection:\n['corporate_name', 'company_name'] -> entity_name\n['tax_identifier', 'ein'] -> tax_id\n['annual_revenue', 'revenue_usd'] -> annual_revenue"]
+        CLEANSE["Type Coercion & Data Cleansing:\n- Strip currency symbols\n- Parse founded year\n- Uppercase ISO country code"]
+        PYDANTIC["Validate Pydantic Model (CorporateRecordInput)"]
+        VALID_RECS["Normalized In-Memory Records:\n- S1: 1,200 Valid\n- S2: 1,200 Valid"]
     end
 
-    subgraph S3_EntityResolution["Stage 3: Multi-Tier Deterministic Entity Resolution"]
-        ACTOR_CALL["Call EntityResolver Actor\n(Pinned via entity_resolver_slot: 1)"]
+    subgraph Step3["Stage 3: Multi-Tier Deterministic Entity Resolution"]
+        COLLECT["Aggregate 2,400 Valid Ingested Records"]
         
-        MATCH_TIER1{"Tier 1:\nExact Tax ID Match?"}
-        MATCH_TIER2{"Tier 2:\nToken Sort Ratio >= 0.90\n& Country / Year Match?"}
-        MATCH_TIER3{"Tier 3:\nAmbiguous Score\n(0.65 <= Ratio < 0.90)?"}
+        subgraph MatchingEngine["EntityResolverEngine Algorithm"]
+            TIER1{"Tier 1: Exact Tax ID Match?\n(Confidence: 1.00)"}
+            TIER2{"Tier 2: Normalized Levenshtein >= 0.88\n+ Country Match + |Year Diff| <= 1?\n(Confidence: 0.92)"}
+            AMBIG{"Ambiguity Threshold?\n(0.65 <= Similarity < 0.88)"}
+            NEW_ENT["Distinct Entity Created\n(UUIDv5 Canonical ID: COMP-XXXXXXXX)"]
+        end
 
-        ASSIGN_EXISTING["Merge with Existing Entity\n(Assign Known Entity ID)"]
-        ASSIGN_NEW["Mint New Canonical ID\n(UUIDv5: COMP-XXXXXXXX-XXXX)"]
-        QUARANTINE_RECORD["Quarantine Ambiguous Entity\n(Human Review Queue)"]
-        S3_QUARANTINE["S3: quarantine/ambiguous_entities/"]
+        CANONICAL["1,557 Canonical Merged Entities\n(Enriched with Corroborated Fields)"]
+        QUARANTINE["711 Ambiguous Records\n-> Divert to s3://.../quarantine/"]
     end
 
-    subgraph S4_ML_Training["Stage 4: Ray Train Distributed Machine Learning"]
-        FEATURE_ENG["Feature Engineering\n- Log Transform Target (Annual Revenue)\n- One-Hot Country & Industry Encodings\n- ESG & Risk Score Scaling"]
-        TRAIN_SPLIT["Distributed Train/Test Split (80/20)"]
-        RAY_TRAINER["Ray Train Distributed Regressor\n(Gradient Boosting / LightGBM)"]
-        EVAL_METRICS["Model Evaluation\n- Target R² >= 0.85\n- Calculate RMSE & MAE"]
-        SAVE_MODEL["Persist Model Artifacts\n- S3: models/model.tar.gz\n- S3: models/metrics.json"]
+    subgraph Step4["Stage 4: Apache Iceberg Lakehouse Persistence"]
+        PYICEBERG["PyIceberg Arrow Table Construction"]
+        WRITE_PARQUET["Write Snappy-Compressed Parquet Data Files"]
+        COMMIT_SNAPSHOT["Atomic CAS Commit to AWS Glue Catalog\n- Snapshot ID: e.g. 356891083480308578\n- ACID Transaction Guarantees"]
     end
 
-    subgraph S5_Lakehouse["Stage 5: Apache Iceberg Transactional Lakehouse"]
-        ICEBERG_TABLE[("Apache Iceberg Table:\ncorporate_data_db.corporate_registry")]
-        GLUE_CATALOG[("AWS Glue Data Catalog (Lock & Metastore)")]
-        S3_WAREHOUSE[("S3: iceberg-warehouse/corporate_registry/\n- Data Parquet Files\n- Avro Manifests & Snapshot Logs")]
+    subgraph Step5["Stage 5: Gradient Boosting Regressor Training"]
+        EXTRACT_FEATURES["Feature Engineering:\n- Age = CurrentYear - FoundedYear\n- Employee Count\n- Resolution Confidence Score\n- Target: log1p(annual_revenue)"]
+        TRAIN_EVAL["Train GradientBoostingRegressor (100 Trees, LR: 0.1)\nEvaluate 80/20 Train/Test Split"]
+        ASSERT_R2{"Test R^2 >= 0.85?\n(Achieved: 0.8725)"}
+        SAVE_MODEL["Serialize revenue_model.joblib & metrics.json to S3"]
     end
 
-    subgraph S6_Finalize["Stage 6: Ledger Finalization & Audit"]
-        AUDIT_METRICS["Compile Run Statistics\n- Total Rows Processed\n- Entities Resolved\n- Quarantine Count\n- Model R² Score"]
-        DDB_COMPLETE[("Update DynamoDB Status: COMPLETED\n(Atomic Conditional Update)")]
+    subgraph Step6["Stage 6: Finalization & Audit Telemetry"]
+        UPDATE_DDB["Update DynamoDB Ledger:\n- status = COMPLETED\n- canonical_entities = 1557\n- iceberg_snapshot_id = 356891083480308578\n- model_r2_score = 0.8725"]
+        EMIT_CW["Emit Custom CloudWatch Metrics & JSON Summary"]
     end
 
-    %% Pipeline Flow
-    CSV_S1 --> S3_IN
-    CSV_S2 --> S3_IN
-    S3_IN --> LAMBDA
-    LAMBDA <-->|"Conditional Lease Lock"| DDB_LEDGER
-    LAMBDA -->|"Submit Job"| K8S_RAYJOB
-    K8S_RAYJOB --> RAY_DATA_READ
+    S1 --> CALC_HASH
+    S2 --> CALC_HASH
+    CALC_HASH --> DDB_CLAIM
+    DDB_CLAIM -->|Already Exists| EXISTS
+    DDB_CLAIM -->|New Lease| CLAIMED
+    CLAIMED --> MAP_BRANCH
 
-    RAY_DATA_READ --> SCHEMA_DETECT
-    SCHEMA_DETECT -->|Valid Schema| VALID_RECORDS
-    SCHEMA_DETECT -->|Corrupt Schema| CORRUPT_RECORDS
-    CORRUPT_RECORDS --> S3_MALFORMED
+    MAP_BRANCH --> NORM_HEADERS
+    NORM_HEADERS --> CLEANSE
+    CLEANSE --> PYDANTIC
+    PYDANTIC --> VALID_RECS
+    VALID_RECS --> COLLECT
 
-    VALID_RECORDS --> CLEAN_TEXT
-    CLEAN_TEXT --> CLEAN_TAX
-    CLEAN_TAX --> CLEAN_GEO
-    CLEAN_GEO --> ACTOR_CALL
+    COLLECT --> TIER1
+    TIER1 -->|Match| CANONICAL
+    TIER1 -->|No Match| TIER2
+    TIER2 -->|Match| CANONICAL
+    TIER2 -->|No Match| AMBIG
+    AMBIG -->|Ambiguous| QUARANTINE
+    AMBIG -->|No Similarity| NEW_ENT
+    NEW_ENT --> CANONICAL
 
-    ACTOR_CALL --> MATCH_TIER1
-    MATCH_TIER1 -->|Yes (Confidence: 1.0)| ASSIGN_EXISTING
-    MATCH_TIER1 -->|No| MATCH_TIER2
+    CANONICAL --> PYICEBERG
+    PYICEBERG --> WRITE_PARQUET
+    WRITE_PARQUET --> COMMIT_SNAPSHOT
+    COMMIT_SNAPSHOT --> EXTRACT_FEATURES
 
-    MATCH_TIER2 -->|Yes (Confidence >= 0.90)| ASSIGN_EXISTING
-    MATCH_TIER2 -->|No| MATCH_TIER3
-
-    MATCH_TIER3 -->|Yes (0.65 - 0.89)| QUARANTINE_RECORD
-    MATCH_TIER3 -->|No (Confidence < 0.65)| ASSIGN_NEW
-
-    QUARANTINE_RECORD --> S3_QUARANTINE
-    ASSIGN_EXISTING --> FEATURE_ENG
-    ASSIGN_NEW --> FEATURE_ENG
-
-    FEATURE_ENG --> TRAIN_SPLIT
-    TRAIN_SPLIT --> RAY_TRAINER
-    RAY_TRAINER --> EVAL_METRICS
-    EVAL_METRICS --> SAVE_MODEL
-
-    ASSIGN_EXISTING --> ICEBERG_TABLE
-    ASSIGN_NEW --> ICEBERG_TABLE
-    ICEBERG_TABLE <-->|"Acquire Catalog Commit Lock"| GLUE_CATALOG
-    ICEBERG_TABLE -->|"Write Parquet & Manifests"| S3_WAREHOUSE
-
-    ICEBERG_TABLE --> AUDIT_METRICS
-    SAVE_MODEL --> AUDIT_METRICS
-    AUDIT_METRICS --> DDB_COMPLETE
+    EXTRACT_FEATURES --> TRAIN_EVAL
+    TRAIN_EVAL --> ASSERT_R2
+    ASSERT_R2 -->|Pass| SAVE_MODEL
+    SAVE_MODEL --> UPDATE_DDB
+    UPDATE_DDB --> EMIT_CW

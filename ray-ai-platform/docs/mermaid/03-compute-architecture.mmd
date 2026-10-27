@@ -1,98 +1,59 @@
 flowchart TD
-    %% Compute Architecture & Capacity Tiering
-    subgraph EKS_Cluster["Amazon EKS Cluster: ray-platform-test-eks (Kubernetes v1.30)"]
+    %% Serverless Compute Architecture Diagram
+    subgraph TriggerSource["Trigger Sources"]
+        EVENT["EventBridge Trigger / S3 PutObject"]
+        CLI["AWS CLI / API Gateway Manual Start"]
+    end
+
+    subgraph StateMachine["AWS Step Functions (Orchestration Engine)"]
+        SF_EXEC["Step Functions Execution Engine\n- State: RUNNING\n- Evaluates ASL JSON\n- Manages Context & Payload Passing"]
+    end
+
+    subgraph ComputeTier["AWS Lambda Micro-Function Compute Tier (Firecracker MicroVMs)"]
         direction TB
 
-        subgraph ControlPlane["AWS Managed Control Plane (Multi-AZ)"]
-            K8S_API["Kubernetes API Server (v1.30)"]
-            ETCD["etcd State Store (Encrypted with AWS KMS)"]
-            K8S_SCHED["kube-scheduler"]
-            ACCESS_ENTRY["EKS Access Entries Engine\n(EC2_LINUX Type - Zero aws-auth ConfigMap)"]
+        subgraph F1["Stage 1: Discovery MicroVM"]
+            M1["Memory: 512 MB\nCPU: ~0.3 vCPU\nTimeout: 60s\nEphemeral: 512 MB /tmp\nRole: SHA256 Hash + DynamoDB Claim"]
         end
 
-        subgraph Tier1_System["Tier 1: Stable System Node Group (EKS Managed - On-Demand)"]
-            direction TB
-            subgraph Node_System["EC2 Instance: m7g.xlarge (Graviton3 On-Demand | us-east-1a)"]
-                SYS_LABELS["Labels: workload-role = ray-head-system\nTaints: None"]
-                
-                subgraph SysComponents["Cluster System Services"]
-                    COREDNS["CoreDNS (2 replicas)"]
-                    VPCCNI["AWS VPC-CNI & Kube-Proxy"]
-                    EBS_CSI["AWS EBS CSI Driver"]
-                end
-
-                subgraph Operators["Platform Controllers"]
-                    KUBERAY["KubeRay Operator (v1.2.2)\n- Reconciles RayJob & RayCluster CRDs"]
-                    KARP_CTRL["Karpenter Controller (v1.0.8)\n- JIT EC2 Fleet Provisioner\n- Polls Interruption SQS"]
-                end
-
-                subgraph ObservabilityStack["Monitoring Stack"]
-                    PROM["Prometheus Server (Scrapes :8080)"]
-                    GRAF["Grafana (Private Dashboards)"]
-                end
-
-                subgraph RayHeadContainer["Ray Head Pod (Stable Orchestrator)"]
-                    HEAD_GCS["Global Control Store (GCS Redis)"]
-                    HEAD_AUTOSCALER["Ray In-Tree Autoscaler\n- Evaluates task backlog\n- idleTimeout: 60s"]
-                    HEAD_RES["Custom Resource: entity_resolver_slot: 1\n(Pins stateful EntityResolver actor)"]
-                end
-            end
+        subgraph F2["Stage 2: Parallel Ingestion (Distributed Map)"]
+            direction LR
+            M2_A["Lambda MicroVM A (S1)\nMemory: 1024 MB (~0.6 vCPU)\nTimeout: 120s\nTask: Supply Chain CSV Normalization"]
+            M2_B["Lambda MicroVM B (S2)\nMemory: 1024 MB (~0.6 vCPU)\nTimeout: 120s\nTask: Financial CSV Normalization"]
         end
 
-        subgraph Tier2_Karpenter["Tier 2: Dynamic Karpenter Spot Compute Layer (Just-In-Time)"]
-            direction TB
-
-            subgraph NodePool_Spot["NodePool: ray-worker-spot (Weight: 100)"]
-                SPOT_SPECS["Taints: workload-role = ray-worker:NoSchedule\nConsolidation: WhenEmptyOrUnderutilized (60s)\nDisruption Budget: 20%\nLimits: 64 vCPUs / 256 GiB RAM"]
-                
-                subgraph DiversifiedPools["Diversified Graviton EC2 Spot Instances (3 AZs x 8 Types = 24 Pools)"]
-                    direction LR
-                    INSTANCE_M7G["m7g.xlarge / 2xlarge\n(AWS Graviton3 ARM64)"]
-                    INSTANCE_M6G["m6g.xlarge / 2xlarge\n(AWS Graviton2 ARM64)"]
-                    INSTANCE_C7G["c7g.2xlarge / 4xlarge\n(Compute Graviton3)"]
-                    INSTANCE_R7G["r7g.xlarge / 2xlarge\n(Memory Graviton3)"]
-                end
-
-                subgraph WorkerPods["Ray Worker Pods (0 to 8 Replicas)"]
-                    WP1["Worker Pod 1\nRequests: 3 CPU / 12Gi\n/dev/shm: 4Gi tmpfs\nPlasma: 3.6Gi"]
-                    WP2["Worker Pod 2\nRequests: 3 CPU / 12Gi\n/dev/shm: 4Gi tmpfs\nPlasma: 3.6Gi"]
-                    WPN["Worker Pod N\nScale-to-Zero Capable\n$0.00 idle cost"]
-                end
-            end
-
-            subgraph NodePool_OnDemand["NodePool: ray-worker-ondemand (Weight: 10)"]
-                OD_FALLBACK["Fallback On-Demand NodePool\n(Triggers only upon 100% Spot Regional Exhaustion)"]
-            end
+        subgraph F3["Stage 3: Multi-Tier Entity Resolution MicroVM"]
+            M3["Memory: 2048 MB\nCPU: ~1.2 vCPU\nTimeout: 300s\nEphemeral: 2048 MB /tmp\nRole: Pairwise Tax ID + Fuzzy Levenshtein (>= 0.88)"]
         end
 
-        subgraph InterruptionEngine["Proactive Spot Interruption Handling"]
-            EVENTBRIDGE["AWS EventBridge\n(EC2 Spot Interruption / Rebalance)"]
-            SQS_QUEUE["SQS Interruption Queue\n(2-Minute Notice Drain)"]
+        subgraph F4["Stage 4: Apache Iceberg Sink MicroVM"]
+            M4["Memory: 2048 MB\nCPU: ~1.2 vCPU\nTimeout: 300s\nRole: PyIceberg ACID Upsert + Glue CAS Commit"]
+        end
+
+        subgraph F5["Stage 5: ML Regressor Training MicroVM"]
+            M5["Memory: 3072 MB\nCPU: ~1.8 vCPU (High Clock Speed)\nTimeout: 600s\nRole: Gradient Boosting Regressor (R^2 >= 0.85)"]
+        end
+
+        subgraph F6["Stage 6: Finalizer & Telemetry MicroVM"]
+            M6["Memory: 512 MB\nCPU: ~0.3 vCPU\nTimeout: 60s\nRole: Mark Ledger COMPLETED + Emit Metrics"]
         end
     end
 
-    %% Wiring
-    K8S_API <--> K8S_SCHED
-    K8S_API <--> KUBERAY
-    K8S_API <--> KARP_CTRL
+    subgraph ScaleToZero["Instant Scale-to-Zero"]
+        COMPLETE(["Execution Finishes"])
+        ZERO_COST["All 6 MicroVMs Terminate\nActive vCPUs: 0\nActive Memory: 0 MB\nHourly Cost: $0.0000"]
+    end
 
-    %% Head & Scheduling
-    KUBERAY -->|"Deploys & Monitors"| RayHeadContainer
-    HEAD_AUTOSCALER -->|"Requests Worker Replicas (0 to 8)"| K8S_API
-    K8S_SCHED -->|"Fails to Place Worker Pods (Insufficient Capacity)"| WorkerPods
-    WorkerPods -->|"Unschedulable (Pending State)"| KARP_CTRL
+    EVENT --> SF_EXEC
+    CLI --> SF_EXEC
 
-    %% Karpenter Provisioning Loop
-    KARP_CTRL -->|"Direct AWS EC2 Fleet API (<45s)"| DiversifiedPools
-    DiversifiedPools -->|"Node Registers via EKS Access Entry"| ACCESS_ENTRY
-    ACCESS_ENTRY -->|"Authenticates EC2_LINUX"| K8S_API
-    K8S_SCHED -->|"Schedules Pending Workers onto Nodes"| WorkerPods
-
-    %% Interruption Loop
-    EVENTBRIDGE -->|"2-Min Interruption Notice"| SQS_QUEUE
-    SQS_QUEUE -->|"Karpenter Polls SQS"| KARP_CTRL
-    KARP_CTRL -->|"Proactive Cordon & Evict"| WorkerPods
-
-    %% Scale to Zero Loop
-    HEAD_AUTOSCALER -->|"Idle > 60s: Scales Workers to 0"| WorkerPods
-    KARP_CTRL -->|"Consolidates & Terminates Empty EC2 Nodes"| DiversifiedPools
+    SF_EXEC --> M1
+    M1 --> M2_A
+    M1 --> M2_B
+    M2_A --> M3
+    M2_B --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> M6
+    M6 --> COMPLETE
+    COMPLETE --> ZERO_COST

@@ -12,6 +12,7 @@ Validates:
 import os
 import shutil
 import tempfile
+from pathlib import Path
 import pytest
 
 from application.src.serverless.handlers import (
@@ -27,9 +28,13 @@ from application.src.serverless.serverless_pipeline import run_serverless_pipeli
 
 @pytest.fixture(scope="module")
 def sample_csv_paths():
-    """Verify input test data paths."""
-    s1 = "application/data/supply_chain_data_s1.csv"
-    s2 = "application/data/financial_data_s2.csv"
+    """Verify input test data paths dynamically."""
+    base_dir = Path(__file__).resolve().parent.parent / "data"
+    s1 = str(base_dir / "supply_chain_data_s1.csv")
+    s2 = str(base_dir / "financial_data_s2.csv")
+    if not os.path.exists(s1):
+        s1 = "application/data/supply_chain_data_s1.csv"
+        s2 = "application/data/financial_data_s2.csv"
     assert os.path.exists(s1), f"Missing test dataset {s1}"
     assert os.path.exists(s2), f"Missing test dataset {s2}"
     return s1, s2

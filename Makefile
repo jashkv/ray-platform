@@ -1,5 +1,5 @@
 # ==============================================================================
-# The Distributed AI Foundation — Ray AI Platform on AWS EKS
+# The Serverless AI Foundation — AWS Serverless Platform on branch serverless
 # Production-Grade Makefile Automation
 # ==============================================================================
 SHELL := /usr/bin/env bash
@@ -91,7 +91,7 @@ endef
 .PHONY: help show-config verify-tools verify-aws
 
 help: ## Show this interactive help catalog of all targets
-	@printf "\n$(BOLD)$(CYAN)Ray AI Platform on Kubernetes — Makefile Command Center$(RESET)\n"
+	@printf "\n$(BOLD)$(CYAN)The Serverless AI Foundation (serverless branch) — Makefile Command Center$(RESET)\n"
 	@printf "===============================================================================\n"
 	@printf "Usage: $(BOLD)make [target] [VARIABLE=value]$(RESET)\n\n"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  $(BOLD)$(GREEN)%-28s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -572,13 +572,17 @@ e2e-local: ## Run master local end-to-end verification harness (7 gates, exit co
 	@$(LOG_OK) "ALL 7 E2E VALIDATION GATES PASSED SUCCESSFULLY."
 
 # ==============================================================================
-# Group 14b: Serverless Alternative Workflow (AWS Step Functions + Lambda)
+# Group 14b: Serverless Platform Workflow (AWS Step Functions + Lambda)
 # ==============================================================================
-.PHONY: test-serverless e2e-serverless-local tf-init-serverless tf-validate-serverless tf-plan-serverless
+.PHONY: test-serverless e2e-serverless-local e2e test-all tf-init-serverless tf-validate-serverless tf-plan-serverless
+
+e2e: e2e-serverless-local ## Run master local end-to-end verification on serverless branch
+
+test-all: test-unit test-serverless ## Run all unit, integration, and serverless tests
 
 test-serverless: ## Run pytest suite for Serverless Alternative Lambda handlers
 	@$(LOG_INFO) "Running Serverless Alternative test suite..."
-	@$(PYTEST) $(APP_DIR)/tests/test_serverless_pipeline.py -v
+	@cd $(RAY_DIR) && $(PYTEST) application/tests/test_serverless_pipeline.py -v
 	@$(LOG_OK) "Serverless test suite passed."
 
 e2e-serverless-local: ## Run master local end-to-end verification for Serverless Alternative

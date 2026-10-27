@@ -1,82 +1,68 @@
-# 10 — CI/CD Pipeline, GitOps & Infrastructure Lifecycle
+# 10 — CI/CD Pipeline & GitOps Deployment Lifecycle (Serverless Alternative)
 
-This document describes the **Automated CI/CD Deployment Lifecycle**, detailing the testing gates, Terraform layering, container build, Helm orchestration, and end-to-end verification.
+This document provides the CI/CD pipeline, automated testing gates, and GitOps infrastructure lifecycle for the **AWS Serverless Platform**.
 
 ---
 
-## CI/CD Pipeline Diagram
+## 1. Architectural Diagram
 
 ```mermaid
 flowchart TD
-    %% CI/CD, GitOps & Infrastructure Lifecycle
-    subgraph Source_Control["Source Control & Developer Workstation"]
-        DEV["Platform / ML Engineer"]
-        GIT_REPO["GitHub Repository: main branch"]
-        MAKEFILE["Unified Makefile (make tf-apply-all / make deploy-all)"]
+    %% Serverless CI/CD Pipeline & GitOps Deployment Lifecycle
+    subgraph SourceControl["Source Control & Developer Workstation"]
+        DEV["Data / DevOps Engineer"]
+        GIT_REPO["GitHub Repository: serverless branch"]
+        MAKEFILE["Unified Makefile (make tf-plan-serverless / make e2e-serverless-local)"]
     end
 
     subgraph GHA_Workflow["GitHub Actions CI/CD Pipeline (.github/workflows/)"]
         direction TB
 
         subgraph Stage_Lint["Stage 1: Static Analysis & Unit Tests"]
-            TEST_UNIT["make test-unit\n(Pytest: 7/7 Passing)"]
-            TF_LINT["make lint-tf\n(Canonical Formatting)"]
+            TEST_UNIT["make test-serverless\n(Pytest: 5/5 Passing in ~96s)"]
+            TF_LINT["make lint-tf\n(Canonical Formatting Check)"]
             REPO_VAL["./scripts/validate_repo.sh\n(Layout, Credentials, Syntax)"]
-            K8S_VAL["./scripts/validate_k8s_manifests.sh\n(YAML, Resources, CRDs)"]
         end
 
         subgraph Stage_Auth["Stage 2: Zero-Trust Cloud Authentication"]
-            GHA_STS["AWS OIDC Federation\n(aws-actions/configure-aws-credentials)\n- Role: gha-deployment-role\n- Zero Long-Lived Secrets"]
+            GHA_STS["AWS OIDC Federation\n(aws-actions/configure-aws-credentials)\n- Role: gha-serverless-deployer\n- Zero Long-Lived Secrets"]
         end
 
-        subgraph Stage_Terraform["Stage 3: Terraform Layered Provisioning"]
-            TF_BOOT["01-bootstrap: S3 State Bucket & Lock Table"]
-            TF_NET["02-network: VPC, 3 AZs, PrivateLink Endpoints"]
-            TF_EKS["03-eks: EKS 1.30, System NodeGroup, Karpenter Module"]
-            TF_DATA["04-data: S3 Buckets, DynamoDB Ledger, KMS CMK, Glue"]
-            TF_PLAT["05-platform: ECR Repository & Base Platform Config"]
-            TF_BOOT --> TF_NET --> TF_EKS --> TF_DATA --> TF_PLAT
+        subgraph Stage_Terraform["Stage 3: Serverless Terraform Provisioning"]
+            TF_INIT["make tf-init-serverless\n(Download AWS & Archive Providers)"]
+            TF_VAL["make tf-validate-serverless\n(Validate ASL & HCL Syntax)"]
+            TF_PLAN["make tf-plan-serverless\n(Plan State Machine, Lambdas, SQS, IAM)"]
+            TF_APPLY["terraform apply -auto-approve\n(Deploys complete stack in < 90s)"]
+            TF_INIT --> TF_VAL --> TF_PLAN --> TF_APPLY
         end
 
-        subgraph Stage_Docker["Stage 4: Container Build & Push"]
-            DOCKER_BUILD["Docker Build (Multi-Stage Build)\n- Base: Ray 2.40.0-py310\n- Dependencies: PyIceberg, LightGBM, AWS SDK"]
-            ECR_PUSH["Docker Push to Amazon ECR\n(123456789012.dkr.ecr.us-east-1.amazonaws.com)"]
-        end
-
-        subgraph Stage_K8s["Stage 5: Kubernetes & Helm GitOps Deployment"]
-            HELM_KARP["Helm Install Karpenter v1.0.8"]
-            APPLY_CRDS["kubectl apply:\n- EC2NodeClass\n- NodePool (Spot & On-Demand)"]
-            HELM_KUBERAY["Helm Install KubeRay Operator v1.2.2"]
-            APPLY_RAYCLUSTER["kubectl apply:\n- ray-cluster.yaml\n- ray-podmonitor.yaml\n- rbac.yaml"]
-        end
-
-        subgraph Stage_Verification["Stage 6: Smoke Test & Job Execution"]
-            SMOKE_TEST["make ray-smoke-test\n(Submit lightweight Ray job)"]
-            JOB_SUBMIT["Submit RayJob CRD\n(Data Processing & LightGBM Training)"]
-            E2E_VERIFY["make e2e-verify\n(Assert Iceberg snapshot & DDB ledger)"]
+        subgraph Stage_Verification["Stage 4: Automated Cloud Smoke Test"]
+            TRIGGER_SFN["aws stepfunctions start-execution\n(Submit test pipeline execution)"]
+            POLL_EXEC["Poll Execution Status -> SUCCEEDED"]
+            ASSERT_OUTPUTS["Assert Iceberg Snapshot ID & DynamoDB Ledger Status: COMPLETED"]
+            TRIGGER_SFN --> POLL_EXEC --> ASSERT_OUTPUTS
         end
     end
 
-    %% Wiring
-    DEV -->|"git push origin main"| GIT_REPO
+    DEV -->|"git push origin serverless"| GIT_REPO
     DEV -.->|"Local Orchestration"| MAKEFILE
     GIT_REPO --> Stage_Lint
     Stage_Lint --> Stage_Auth
     Stage_Auth --> Stage_Terraform
-    Stage_Terraform --> Stage_Docker
-    Stage_Docker --> Stage_K8s
-    Stage_K8s --> Stage_Verification
+    Stage_Terraform --> Stage_Verification
 ```
 
 ---
 
-## Deployment Stage Descriptions
+## 2. Automated Pipeline Stages
 
-| Stage | Command / Trigger | Actions & Validations |
-| :--- | :--- | :--- |
-| **1. Static Analysis & Unit Tests** | Automated on PR / push | Runs `pytest`, `terraform fmt -check`, bash manifest validation, and zero-credential leak pre-checks. |
-| **2. Zero-Trust OIDC Auth** | `aws-actions/configure-aws-credentials` | Obtains short-lived AWS STS token via GitHub Actions OIDC federation. No static keys stored in GitHub Secrets. |
-| **3. Terraform Layered Apply** | `make tf-apply-all` | Applies the 5 decoupled layers in order: `bootstrap` $\to$ `network` $\to$ `eks` $\to$ `data` $\to$ `platform`. |
-| **4. Container Image Build** | `make docker-build-push` | Builds multi-stage Docker container with pinned Ray, PyIceberg, and ML runtimes; pushes to AWS ECR. |
-| **5. Helm & Kubernetes Deploy** | `make deploy-all` | Installs Karpenter `v1.0.8`, registers `EC2NodeClass` and `NodePool`, deploys KubeRay Operator `v1.2.2`, and launches the `RayCluster`. |
-| **6. End-to-End Verification** | `make e2e-verify` | Submits Ray smoke job, tests dynamic autoscaling to Spot instances, validates Iceberg snapshot write, and confirms DynamoDB ledger completion. |
+1. **Stage 1 (Static Analysis & Unit Tests):**
+   - Runs Pytest across serverless handlers (`make test-serverless`).
+   - Checks canonical Terraform formatting (`make lint-tf`).
+   - Validates repository layout and secret pre-checks (`validate_repo.sh`).
+2. **Stage 2 (OIDC Cloud Authentication):**
+   - Authenticates to AWS via GitHub Actions OpenID Connect (OIDC) without long-lived secret keys.
+3. **Stage 3 (Serverless Terraform Provisioning):**
+   - Plans and deploys the Step Functions state machine, 6 Lambda functions, SQS DLQ, and IAM roles in under 90 seconds.
+4. **Stage 4 (Cloud Smoke Test):**
+   - Triggers a test Step Functions execution and asserts completion status in DynamoDB.

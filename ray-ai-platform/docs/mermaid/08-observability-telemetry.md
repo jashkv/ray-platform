@@ -1,87 +1,95 @@
-# 08 — Observability, Metrics & Centralized Logging Architecture
+# 08 — Observability, Metrics & Centralized Logging Architecture (Serverless Alternative)
 
-This document outlines the **Observability, Metrics Collection, and Centralized Logging Pipeline** for the Ray AI Platform on AWS EKS.
+This document provides the observability, structured logging, CloudWatch metrics, and distributed tracing architecture of the **AWS Serverless Platform**.
 
 ---
 
-## Observability Architecture Diagram
+## 1. Architectural Diagram
 
 ```mermaid
 flowchart TD
-    %% Observability, Metrics & Centralized Logging Architecture
-    subgraph Workload_EKS["Amazon EKS Workload Pods (ray-system namespace)"]
-        HEAD_METRICS["Ray Head Pod\n- Metrics Server (:8080)\n- Ray Dashboard (:8265)\n- Log Stream: stdout / stderr"]
-        WORKER_METRICS["Ray Worker Pods\n- Metrics Server (:8080)\n- Plasma Store Stats\n- Log Stream: stdout / stderr"]
+    %% Serverless Observability, Metrics & Centralized Logging Architecture
+    subgraph ExecutionPlane["Serverless Workload Execution"]
+        SFN["AWS Step Functions State Machine\n(Detailed Execution History & Step Transitions)"]
+        L1["Lambda: Discovery (512MB)"]
+        L2["Lambda: Validator (1024MB)"]
+        L3["Lambda: Resolver (2048MB)"]
+        L4["Lambda: Iceberg Sink (2048MB)"]
+        L5["Lambda: ML Trainer (3072MB)"]
+        L6["Lambda: Finalizer (512MB)"]
+        DLQ["Amazon SQS Dead-Letter Queue (DLQ)"]
     end
 
-    subgraph Prometheus_Stack["Prometheus Monitoring Stack"]
-        POD_MONITOR["Prometheus PodMonitor CRD\n(ray-head-monitor & ray-worker-monitor)\n- Scrape Interval: 15s\n- Port: 8080"]
-        PROM_SERVER["Prometheus Server\n- Time Series Database (TSDB)\n- Evaluates AlertRules"]
-        GRAFANA["Grafana Visualizer\n- Ray Cluster Health Dashboard\n- Memory & Plasma Pressure\n- Active Actor / Task Counts"]
+    subgraph CentralizedTelemetry["Amazon CloudWatch Observability Suite"]
+        direction TB
+
+        subgraph LogStreams["Structured JSON Log Groups (14-Day Retention)"]
+            CW_L1["/aws/lambda/sfn-corporate-discovery"]
+            CW_L2["/aws/lambda/sfn-corporate-validator"]
+            CW_L3["/aws/lambda/sfn-corporate-resolver"]
+            CW_L4["/aws/lambda/sfn-corporate-iceberg-sink"]
+            CW_L5["/aws/lambda/sfn-corporate-trainer"]
+            CW_L6["/aws/lambda/sfn-corporate-finalizer"]
+        end
+
+        subgraph CustomMetrics["CloudWatch Custom Metrics Namespace: CorporatePlatform"]
+            M_DUR["Metric: PipelineExecutionDuration (Seconds)"]
+            M_CAN["Metric: CanonicalEntitiesCount (1557)"]
+            M_QUAR["Metric: QuarantinedEntitiesCount (711)"]
+            M_R2["Metric: ModelR2Score (0.8725)"]
+            M_SNAP["Metric: IcebergSnapshotID"]
+        end
+
+        subgraph Alarms["Operational Alarms & DLQ Alerts"]
+            ALARM_DLQ["CloudWatch Alarm: SQS_DLQ_Messages_Present\nThreshold: VisibleMessages > 0"]
+            ALARM_FAIL["CloudWatch Alarm: StepFunctions_Execution_Failed\nThreshold: FailedExecutions >= 1"]
+        end
+
+        subgraph XRay["AWS X-Ray Distributed Tracing"]
+            TRACE["End-to-End Execution Trace Map:\nStep Functions -> Lambda Invocations -> S3/DynamoDB SDK Calls"]
+        end
     end
 
-    subgraph Logging_Stack["Centralized Logging Stack"]
-        HOST_LOGS["Host Path: /var/log/pods/ray-system_*"]
-        FLUENT_BIT["AWS Fluent Bit DaemonSet\n- Multiline Parser\n- Kubernetes Metadata Filter\n- Buffer & Chunking Engine"]
-        CW_LOGS[("Amazon CloudWatch Logs\nLog Group: /aws/eks/ray-platform-test/workloads\n- Retention: 30 Days\n- Encrypted via KMS")]
+    subgraph Dashboards["Platform Operator Visualization"]
+        CW_DASH["CloudWatch Executive Dashboard:\n- End-to-end pipeline duration trends\n- Entity deduplication yield over time\n- Revenue ML model test R^2 scores"]
+        SNS_ALERT["Amazon SNS Notification\n(Alerts On-Call Platform Engineer)"]
     end
 
-    subgraph Alerting_Events["Alerting & EventBridge Alarms"]
-        CW_ALARMS["CloudWatch Metric Alarms\n- RayHeadOOM\n- SpotInterruptionSpike\n- PipelineFailureRate"]
-        SNS_TOPIC["Amazon SNS Topic\n(Platform Alerts)"]
-    end
+    L1 --> CW_L1
+    L2 --> CW_L2
+    L3 --> CW_L3
+    L4 --> CW_L4
+    L5 --> CW_L5
+    L6 --> CW_L6
 
-    subgraph Secure_Operator_Access["Secure Operator & Data Scientist Access"]
-        ADMIN["Data Scientist / SRE"]
-        PORT_FWD["kubectl port-forward (:8265 / :9090 / :3000)"]
-        PRIVATE_ALB["Internal ALB + TLS\n(Private Ingress)"]
-    end
+    L6 --> M_DUR
+    L6 --> M_CAN
+    L6 --> M_QUAR
+    L6 --> M_R2
+    L6 --> M_SNAP
 
-    %% Metrics Flow
-    HEAD_METRICS -->|"Expose /metrics"| POD_MONITOR
-    WORKER_METRICS -->|"Expose /metrics"| POD_MONITOR
-    POD_MONITOR -->|"Scrape Targets"| PROM_SERVER
-    PROM_SERVER -->|"Query Metrics"| GRAFANA
+    SFN -.-> TRACE
+    L1 -.-> TRACE
+    L3 -.-> TRACE
+    L5 -.-> TRACE
 
-    %% Log Flow
-    HEAD_METRICS -.->|"Write Pod Logs"| HOST_LOGS
-    WORKER_METRICS -.->|"Write Pod Logs"| HOST_LOGS
-    HOST_LOGS --> FLUENT_BIT
-    FLUENT_BIT -->|"Ship via PrivateLink (Port 443)"| CW_LOGS
+    DLQ --> ALARM_DLQ
+    SFN --> ALARM_FAIL
 
-    %% Alarms Flow
-    PROM_SERVER -.->|"Push High Memory Alert"| CW_ALARMS
-    CW_LOGS -->|"Metric Filters"| CW_ALARMS
-    CW_ALARMS --> SNS_TOPIC
-
-    %% Access Flow
-    ADMIN --> PORT_FWD
-    ADMIN --> PRIVATE_ALB
-    PORT_FWD --> HEAD_METRICS
-    PORT_FWD --> PROM_SERVER
-    PORT_FWD --> GRAFANA
-    PRIVATE_ALB --> HEAD_METRICS
+    ALARM_DLQ --> SNS_ALERT
+    ALARM_FAIL --> SNS_ALERT
+    CustomMetrics --> CW_DASH
 ```
 
 ---
 
-## Observability Capabilities
+## 2. Telemetry & Monitoring Guardrails
 
-### 1. Prometheus Metrics via `PodMonitor`
-- Ray natively exposes OpenMetrics on port `:8080`.
-- The Prometheus Operator discovers Head and Worker pods automatically via `PodMonitor` CRDs (`ray-podmonitor.yaml`).
-- Key metrics tracked include:
-  - `ray_node_cpu_utilization`: Core consumption per node.
-  - `ray_object_store_memory`: Plasma shared memory occupancy in bytes.
-  - `ray_tasks_state`: Real-time queue count of tasks (`RUNNING`, `PENDING_NODE_ASSIGNMENT`).
-  - `ray_actors_state`: Health and restart count of the stateful `EntityResolver` actor.
-
-### 2. High-Throughput Centralized Logging
-- The AWS Fluent Bit DaemonSet mounts `/var/log/pods` from the host.
-- It parses container stdout/stderr, adds Kubernetes namespace/pod metadata, and securely ships log chunks over AWS PrivateLink directly to CloudWatch Logs (`/aws/eks/ray-platform-test/workloads`).
-- This eliminates container logging disk exhaustion on Spot nodes.
-
-### 3. Secure Dashboard Access
-Access to the Ray Dashboard (port `:8265`) is strictly constrained to private routes:
-- Internal access via `kubectl port-forward svc/ray-cluster-kuberay-head-svc 8265:8265`.
-- Or private ingress through an internal Application Load Balancer terminating TLS 1.3 within the private VPC boundary.
+1. **Structured JSON Logs:**
+   Every Lambda handler formats log output in standardized JSON containing `execution_id`, `stage`, `timestamp`, and metric fields.
+2. **Automated Expiration:**
+   All 6 CloudWatch Log Groups configure `retention_in_days = 14`, preventing unbounded log growth.
+3. **Dead-Letter Alarm:**
+   CloudWatch Alarm immediately notifies operators if messages accumulate in the Amazon SQS DLQ.
+4. **Custom Metric Publication:**
+   `handler_finalizer` publishes `ModelR2Score`, `CanonicalEntitiesCount`, and `PipelineDuration` to the `CorporatePlatform` CloudWatch namespace.

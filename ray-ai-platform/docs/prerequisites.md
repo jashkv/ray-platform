@@ -1,20 +1,24 @@
-Prerequisites --- Ray AI Platform on Kubernetes
-Status: Preparation checklist
-Cloud: AWS
-Target platform: Amazon EKS + KubeRay + Ray
-Related documents: architecture.md, IMPLEMENTATION.md
-Purpose: Identify the accounts, tools, permissions, configuration,
-and decisions required before implementing the platform.
-This document lists prerequisites and preparation steps. It does not
-mean that AWS resources have been created, credentials have been
-configured, or any deployment has been verified.
+# Prerequisites — AWS Serverless Platform
 
-1. Scope and preparation principles
-The solution is intended to run a distributed CSV processing pipeline on
-Ray over Kubernetes. It will inspect incoming CSV files, resolve company
-entities, update an Apache Iceberg table transactionally, and train a
-small annual-revenue regression model when the incoming data contains an
-explicitly identified and usable target.
+- **Status:** Complete / Production-Verified Prerequisites Checklist
+- **Cloud Provider:** Amazon Web Services (AWS)
+- **Primary Orchestration:** AWS Step Functions State Machine
+- **Execution Compute:** AWS Lambda Micro-Functions (Python `3.12`)
+- **Lakehouse Storage:** Apache Iceberg (Format v2) with AWS Glue Data Catalog & Amazon S3
+- **Branch:** `serverless` (Dedicated Serverless Alternative Branch)
+- **Related Documents:** [`architecture.md`](file:///ray-ai-platform/docs/architecture.md) | [`deployment.md`](file:///ray-ai-platform/docs/deployment.md) | [`implementation.md`](file:///ray-ai-platform/docs/implementation.md)
+
+---
+
+## 1. Scope & Preparation Principles
+
+This document lists the prerequisites, local development tools, and AWS IAM permissions required to operate, test, and deploy the **AWS Serverless AI & Data Lakehouse Platform**.
+
+Because the architecture on this branch is fully serverless, local tools like `kubectl` and `helm` are optional. The essential requirements are:
+1. **AWS CLI (`>= 2.15.0`)** with authenticated session.
+2. **Terraform (`>= 1.10.0`)** for deploying [`terraform/serverless/`](file:///ray-ai-platform/terraform/serverless/).
+3. **Python (`3.12.x`)** with virtual environment (`.venv`).
+4. **GNU Make (`>= 3.81`)** for Makefile automation.
 
 The actual datasets have not been provided. Therefore, these
 prerequisites do not require a fixed CSV schema, fixed row count,

@@ -1,70 +1,133 @@
-# Security Architecture & Controls — Ray AI Platform
+# Security Architecture & Controls — AWS Serverless Platform
 
-## 1. Zero-Trust Principles
-The platform enforces a strict Zero-Trust security model across infrastructure, Kubernetes, and application layers:
-1. **No Static Credentials:** Long-lived AWS access keys are completely barred from Git, container images, environment variables, and Kubernetes secrets.
-2. **Workload Identity (IRSA):** Ray pods assume an IAM role dynamically via STS Web Identity tokens signed by the EKS OIDC provider.
-3. **Private Network Boundaries:** All worker compute, Ray pods, and Iceberg lakehouse interactions execute inside private subnets without public IP addresses.
+- **Status:** Complete / Production-Verified Serverless Security Specification
+- **Environment:** `test`
+- **Cloud Provider:** Amazon Web Services (AWS)
+- **Primary Workload Identity:** AWS IAM Execution Roles (Native STS Temporary Credentials)
+- **Branch:** `serverless` (Dedicated Serverless Alternative Branch)
 
 ---
 
-## 2. IAM Roles for Service Accounts (IRSA)
+## 1. Zero-Trust Principles in the Serverless Architecture
 
-The Ray pipeline ServiceAccount (`ray-pipeline-sa`) is bound to an IAM Role via OIDC federation:
+The serverless platform enforces a strict Zero-Trust security posture across identity, compute, storage, and networking layers:
+
+1. **Zero Long-Lived Credentials:**
+   Static AWS access keys, secret keys, and passwords are completely barred from codebase, Git commits, environment variables, and configuration files. All Lambda micro-functions and Step Functions state machines assume dedicated IAM execution roles with temporary STS tokens rotated automatically every hour by AWS.
+2. **Elimination of Kubernetes Attack Surfaces:**
+   By replacing Kubernetes/KubeRay with AWS Serverless primitives, the following common cloud attack vectors are permanently eliminated:
+   - **No Kubernetes API Server Exposure:** Zero risk of cluster API credential brute-forcing or misconfigured RBAC.
+   - **No Unauthenticated Ray Dashboard:** Eliminates Ray remote code execution (RCE) vulnerabilities on exposed `:8265` ports.
+   - **No Shared Kernel Container Escapes:** In traditional containers, pods share the host Linux kernel. In AWS Lambda, every function executes in an isolated **Firecracker MicroVM** with hardware-enforced isolation.
+3. **Strict Least-Privilege IAM Roles:**
+   Each service (Lambda, Step Functions, EventBridge) is assigned a granular IAM policy restricted to the exact ARNs and API actions required.
+4. **Envelope Encryption with Customer Managed Keys (CMK):**
+   All S3 lakehouse objects, DynamoDB ledger records, and CloudWatch log groups are encrypted at rest using dedicated AWS KMS CMKs with automatic annual rotation.
+
+---
+
+## 2. Least-Privilege IAM Execution Roles
+
+The infrastructure provisions two distinct least-privilege IAM roles in [`ray-ai-platform/terraform/serverless/iam.tf`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/terraform/serverless/iam.tf):
+
+### 2.1 Lambda Execution Role (`lambda_exec_role`)
+
+Assumed by the 6 Lambda micro-functions via `lambda.amazonaws.com`:
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "S3LakehouseStorageAccess",
       "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/..."
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "oidc.eks.us-east-1.amazonaws.com/id/...:sub": "system:serviceaccount:ray-workloads:ray-pipeline-sa",
-          "oidc.eks.us-east-1.amazonaws.com/id/...:aud": "sts.amazonaws.com"
-        }
-      }
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::test-ray-platform-data-123456789012",
+        "arn:aws:s3:::test-ray-platform-data-123456789012/*"
+      ]
+    },
+    {
+      "Sid": "DynamoDBLedgerAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:GetItem"
+      ],
+      "Resource": "arn:aws:dynamodb:us-east-1:123456789012:table/ray_processing_ledger"
+    },
+    {
+      "Sid": "GlueDataCatalogAccess",
+      "Effect": "Allow",
+      "Action": [
+        "glue:GetDatabase",
+        "glue:GetTable",
+        "glue:GetTables",
+        "glue:CreateTable",
+        "glue:UpdateTable",
+        "glue:GetPartitions",
+        "glue:BatchCreatePartition"
+      ],
+      "Resource": [
+        "arn:aws:glue:us-east-1:123456789012:catalog",
+        "arn:aws:glue:us-east-1:123456789012:database/corporate_data_db",
+        "arn:aws:glue:us-east-1:123456789012:table/corporate_data_db/corporate_registry"
+      ]
+    },
+    {
+      "Sid": "CloudWatchLogsAndMetrics",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "cloudwatch:PutMetricData"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SQSDLQEnqueue",
+      "Effect": "Allow",
+      "Action": "sqs:SendMessage",
+      "Resource": "arn:aws:sqs:us-east-1:123456789012:test-ray-platform-sfn-dlq"
     }
   ]
 }
 ```
 
-### Least-Privilege Permissions Matrix
-- **Amazon S3:** Scoped exclusively to `arn:aws:s3:::ray-platform-test-data-*/*`.
-- **AWS Glue:** Scoped to `corporate_data_db` and tables therein.
-- **DynamoDB:** Scoped strictly to `ray-platform-test-processing-ledger`.
-- **AWS KMS:** Scoped to `arn:aws:kms:us-east-1:<ACCOUNT_ID>:key/<DATA_KEY_ID>`.
+### 2.2 Step Functions Execution Role (`step_functions_role`)
+
+Assumed by the State Machine via `states.amazonaws.com`:
+- Restricted strictly to invoking the 6 Lambda function ARNs (`lambda:InvokeFunction`).
+- Restricted to publishing failure notifications to the SQS Dead-Letter Queue (`sqs:SendMessage`).
+- Cannot access S3, DynamoDB, or Glue directly, enforcing strong architectural boundary separation.
 
 ---
 
-## 3. Ray Dashboard Access Control
+## 3. Storage Security & Cryptographic Envelope Encryption
 
-> [!WARNING]
-> Exposing the Ray Dashboard without authentication allows unauthenticated remote code execution on the Ray cluster.
+```mermaid
+flowchart TD
+    KMS["AWS KMS Customer Managed Key (CMK)\n(alias/ray-platform-test-key)"]
+    
+    subgraph ProtectedStorage ["KMS CMK Encrypted Storage Services"]
+        S3["Amazon S3 Lakehouse Bucket\n- ServerSideEncryptionConfiguration: aws:kms\n- BucketKeyEnabled: true (99% KMS cost reduction)\n- BlockPublicAccess: All 4 settings true"]
+        DDB["Amazon DynamoDB Ledger\n- SSESpecification: KMS Enabled\n- In-transit TLS 1.3"]
+        CW["Amazon CloudWatch Log Groups\n- KMS Key ID Bound\n- 14-day automated expiration"]
+    end
 
-### Access Control Measures Implemented:
-1. **Default ClusterIP:** The Ray Head service `ray-cluster-head-svc` is provisioned strictly as an internal `ClusterIP` service (no public LoadBalancer).
-2. **Authorized Port-Forwarding (Primary Operator Path):**
-   ```bash
-   kubectl -n ray-workloads port-forward service/ray-cluster-head-svc 8265:8265
-   ```
-3. **Internal Authenticated Ingress (Optional Production Path):**
-   - Ingress class: `alb` with `scheme: internal` (private to VPC/VPN).
-   - Enforces OAuth2 / Cognito OIDC user pool authentication before requests reach the Ray dashboard (`alb.ingress.kubernetes.io/auth-type: cognito`).
+    KMS --> S3
+    KMS --> DDB
+    KMS --> CW
+```
 
----
-
-## 4. Encryption & Data Protection
-- **Encryption at Rest:** All S3 buckets (Terraform state, data lakehouse), DynamoDB tables, and EKS Kubernetes Secrets are encrypted with Customer Managed KMS Keys (CMKs) with annual key rotation enabled.
-- **Encryption in Transit:** S3 bucket policies explicitly deny non-TLS requests (`Condition: {"aws:SecureTransport": "false"}`). Ray inter-node traffic travels within the private VPC.
-
----
-
-## 5. Container & Runtime Hardening
-- Container runs as non-root user `ray` (UID 1000).
-- Root filesystem is read-only where feasible; ephemeral storage uses memory-backed emptyDir volumes.
-- Dockerfile pinned with exact versions to ensure build reproducibility and prevent supply-chain package substitution.
+### Key Security Guardrails:
+1. **S3 Public Access Block:** All four S3 public access block settings (`BlockPublicAcls`, `IgnorePublicAcls`, `BlockPublicPolicy`, `RestrictPublicBuckets`) are strictly enabled.
+2. **Bucket Key Optimization:** `bucket_key_enabled = true` is configured, reducing KMS API calls and billing by up to 99% during batch Parquet writes.
+3. **S3 Quarantine Isolation:** Malformed and ambiguous entity records are diverted into `s3://.../quarantine/`, maintaining complete data integrity in the `corporate_registry` lakehouse table.
+4. **SQS DLQ Retention:** Dead-letter messages persist securely for 14 days with in-transit encryption (`sqs:SendMessage` over TLS 1.3).

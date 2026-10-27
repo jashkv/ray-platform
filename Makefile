@@ -635,6 +635,14 @@ logs-ray-head: ## Tail logs of Ray Head pod
 logs-ray-workers: ## Tail logs of Ray Worker pods
 	@$(KUBECTL) logs -n $(K8S_NAMESPACE_WORK) -l ray.io/node-type=worker --tail=100 -f
 
+dashboard: ## Open interactive Ray & Serverless platform dashboard in browser
+	@$(LOG_INFO) "Opening interactive platform dashboard..."
+	@open index.html || xdg-open index.html || python3 -m webbrowser index.html
+
+serve-dashboard: ## Serve dashboard locally on http://localhost:8088
+	@$(LOG_INFO) "Serving dashboard at http://localhost:8088 (Ctrl+C to stop)..."
+	@python3 -m http.server 8088
+
 # ==============================================================================
 # Group 16: Teardown, Cleanup & Cost Management
 # ==============================================================================

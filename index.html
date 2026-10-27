@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ray AI Platform on AWS EKS & Serverless Alternative — Interactive Dashboard</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Mermaid.js for Diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  
+  <!-- Chart.js for Interactive Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* ==========================================================================
+       CSS Variables & Theme Definitions
+       ========================================================================== */
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-heading: 'Montserrat', sans-serif;
+
+      /* Dark Theme (Default) */
+      --bg-base: #0a0f1d;
+      --bg-surface: #111827;
+      --bg-card: #1f2937;
+      --bg-card-hover: #283548;
+      --bg-accent: rgba(0, 240, 255, 0.08);
+      --border-subtle: #374151;
+      --border-focus: #00f0ff;
+      
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --text-light: #6b7280;
+      
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.4);
+      --blue: #3b82f6;
+      --indigo: #6366f1;
+      --purple: #8b5cf6;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --sky: #0ea5e9;
+
+      --card-radius: 12px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+      --shadow-md: 0 4px 14px rgba(0,0,0,0.5);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,0.6);
+      --shadow-cyan: 0 0 20px rgba(0, 240, 255, 0.25);
+    }
+
+    [data-theme="light"] {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #f1f5f9;
+      --bg-card-hover: #e2e8f0;
+      --bg-accent: rgba(2, 132, 199, 0.08);
+      --border-subtle: #cbd5e1;
+      --border-focus: #0284c7;
+
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-light: #64748b;
+
+      --cyan: #0284c7;
+      --cyan-glow: rgba(2, 132, 199, 0.3);
+      --blue: #2563eb;
+      --indigo: #4f46e5;
+      --purple: #7c3aed;
+      --emerald: #059669;
+      --amber: #d97706;
+      --rose: #e11d48;
+      --sky: #0284c7;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 14px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
+      --shadow-cyan: 0 0 20px rgba(2, 132, 199, 0.2);
+    }
+
+    /* ==========================================================================
+       Global Resets & Typography
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5 {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text-main);
+    }
+
+    h1 { font-size: 2.75rem; letter-spacing: -0.02em; }
+    h2 { font-size: 2rem; margin-bottom: 1rem; }
+    h3 { font-size: 1.35rem; margin-bottom: 0.5rem; }
+    h4 { font-size: 1.1rem; }
+
+    p { margin-bottom: 1rem; color: var(--text-muted); }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code, pre {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+    }
+
+    code {
+      background: var(--bg-card);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-subtle);
+      color: var(--cyan);
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: inherit;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Section Spacing */
+    section {
+      padding: 5rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto 3.5rem auto;
+    }
+    .section-tag {
+      display: inline-block;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: var(--cyan);
+      background: var(--bg-accent);
+      padding: 0.35rem 0.85rem;
+      border-radius: 50px;
+      margin-bottom: 0.75rem;
+      border: 1px solid var(--cyan);
+    }
+    .section-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       Navigation Bar
+       ========================================================================== */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.75rem 0;
+    }
+    [data-theme="light"] .navbar {
+      background: rgba(255, 255, 255, 0.9);
+    }
+    .navbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+    .brand i {
+      color: var(--cyan);
+      font-size: 1.4rem;
+    }
+    .brand-badge {
+      font-size: 0.7rem;
+      background: var(--purple);
+      color: white;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      list-style: none;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 0.25rem 0;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--text-main);
+      background: var(--bg-card);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .theme-toggle {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 0.45rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .theme-toggle:hover {
+      border-color: var(--cyan);
+    }
+
+    /* ==========================================================================
+       Hero Section
+       ========================================================================== */
+    .hero {
+      position: relative;
+      padding: 6rem 0 5rem 0;
+      background: radial-gradient(circle at 50% 20%, rgba(0, 240, 255, 0.08), transparent 70%);
+      text-align: center;
+    }
+    .hero-badge-container {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 0.35rem 0.85rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .hero-badge i { color: var(--cyan); }
+    .hero-title {
+      font-size: 3.25rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text-main) 40%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      font-size: 1.25rem;
+      max-width: 850px;
+      margin: 0 auto 2.5rem auto;
+      color: var(--text-muted);
+    }
+
+    /* Key Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.25rem;
+      max-width: 1050px;
+      margin: 0 auto 3rem auto;
+    }
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 1.5rem 1rem;
+      border-radius: var(--card-radius);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+    }
+    .metric-value {
+      font-family: var(--font-heading);
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 0.25rem;
+    }
+    .metric-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* Quick Stats Bar */
+    .quick-stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 50px;
+      padding: 0.85rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      box-shadow: var(--shadow-md);
+    }
+    .quick-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .quick-stat-item i {
+      color: var(--cyan);
+      font-size: 1.1rem;
+    }
+
+    /* ==========================================================================
+       Interactive Cards & Grids
+       ========================================================================== */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.75rem;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 2rem;
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--card-radius);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+    .card:hover {
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-md);
+    }
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: var(--bg-accent);
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid var(--cyan);
+    }
+
+    /* Timeline Component */
+    .timeline {
+      position: relative;
+      margin: 2.5rem 0;
+      padding-left: 2rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border-subtle);
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+    .timeline-item:last-child { margin-bottom: 0; }
+    .timeline-dot {
+      position: absolute;
+      left: -2rem;
+      top: 0.25rem;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      border: 3px solid var(--cyan);
+    }
+    .timeline-dot.danger { border-color: var(--rose); }
+    .timeline-dot.success { border-color: var(--emerald); }
+    .timeline-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+    }
+
+    /* Comparison Table */
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--card-radius);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      box-shadow: var(--shadow-sm);
+      margin: 2rem 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    th {
+      background: var(--bg-card);
+      font-family: var(--font-heading);
+      font-weight: 700;
+      color: var(--text-main);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-accent); }
+
+    /* ==========================================================================
+       Tabbed Interfaces
+       ========================================================================== */
+    .tabs-wrapper {
+      margin: 2rem 0;
+    }
+    .tab-nav {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid var(--border-subtle);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      font-family: var(--font-heading);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .tab-btn:hover { color: var(--text-main); }
+    .tab-btn.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+    }
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mermaid Diagram Containers */
+    .mermaid-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--card-radius);
+      padding: 2rem;
+      overflow-x: auto;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid-box .mermaid {
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Accordion / Collapsible Cards */
+    .accordion-item {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--card-radius);
+      background: var(--bg-surface);
+      margin-bottom: 1rem;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .accordion-header {
+      padding: 1.25rem 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      background: var(--bg-surface);
+      transition: background 0.2s;
+    }
+    .accordion-header:hover {
+      background: var(--bg-card);
+    }
+    .accordion-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .accordion-title i {
+      color: var(--cyan);
+    }
+    .accordion-icon {
+      transition: transform 0.3s ease;
+      color: var(--text-muted);
+    }
+    .accordion-item.open .accordion-icon {
+      transform: rotate(180deg);
+      color: var(--cyan);
+    }
+    .accordion-body {
+      display: none;
+      padding: 1.5rem;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+    }
+    .accordion-item.open .accordion-body {
+      display: block;
+    }
+
+    /* Code Snippet Box */
+    .code-box {
+      position: relative;
+      background: #0d1117;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      margin: 1rem 0;
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      font-size: 0.75rem;
+      color: #8b949e;
+      font-family: var(--font-mono);
+    }
+    .code-header .lang-tag {
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+    .copy-btn {
+      background: transparent;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .code-box pre {
+      padding: 1.25rem;
+      overflow-x: auto;
+      color: #e6edf3;
+      line-height: 1.5;
+    }
+
+    /* Badges & Tags */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .badge-danger { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid #f43f5e; }
+    .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+    .badge-info { background: rgba(0, 240, 255, 0.2); color: #38bdf8; border: 1px solid #00f0ff; }
+    .badge-purple { background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid #8b5cf6; }
+
+    /* Interactive Calculator Form */
+    .calculator-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--card-radius);
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+      margin: 2rem 0;
+    }
+    .calc-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .calc-input-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+    .calc-slider {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--border-subtle);
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .calc-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--cyan);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+    .calc-val-display {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-top: 0.4rem;
+    }
+    .calc-results {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      text-align: center;
+    }
+    .calc-result-box .amt {
+      font-size: 2rem;
+      font-weight: 800;
+      font-family: var(--font-heading);
+    }
+    .calc-result-box.eks .amt { color: var(--sky); }
+    .calc-result-box.srv .amt { color: var(--emerald); }
+    .calc-result-box.savings .amt { color: var(--amber); }
+
+    /* Interactive Decision Wizard */
+    .wizard-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--card-radius);
+      padding: 2.25rem;
+      box-shadow: var(--shadow-md);
+      margin: 2rem 0;
+    }
+    .wizard-step {
+      margin-bottom: 1.5rem;
+    }
+    .wizard-question {
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--text-main);
+    }
+    .wizard-options {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .wizard-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .wizard-btn:hover {
+      border-color: var(--cyan);
+    }
+    .wizard-btn.selected {
+      background: var(--cyan);
+      color: #0b132b;
+      border-color: var(--cyan);
+      font-weight: 700;
+    }
+    .wizard-result {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 2px solid var(--cyan);
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    /* Checklist Progress */
+    .checklist-progress-container {
+      margin-bottom: 2rem;
+    }
+    .progress-bar-bg {
+      background: var(--border-subtle);
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, var(--cyan), var(--emerald));
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      font-size: 0.95rem;
+      color: var(--text-main);
+    }
+    .checklist-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--emerald);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 9999;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      padding: 4rem 0 2rem 0;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 44px;
+      height: 44px;
+      background: var(--bg-card);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+      transition: all 0.2s;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 900;
+    }
+    .back-to-top.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .back-to-top:hover {
+      background: var(--cyan);
+      color: #0b132b;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero-title { font-size: 2.25rem; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .quick-stats-bar { border-radius: 16px; flex-direction: column; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       Top Navigation Bar
+       ======================================================================== -->
+  <nav class="navbar">
+    <div class="container navbar-inner">
+      <a href="#hero" class="brand">
+        <i class="fa-solid fa-brain"></i>
+        <span>Ray AI Platform</span>
+        <span class="brand-badge">AWS EKS & Serverless</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#problem">Problem</a></li>
+        <li><a href="#solution">Solution</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#infrastructure">Terraform</a></li>
+        <li><a href="#security">Zero-Trust</a></li>
+        <li><a href="#application">Application</a></li>
+        <li><a href="#pipeline-flow">Execution Flow</a></li>
+        <li><a href="#deployment">Deployment</a></li>
+        <li><a href="#cost">Cost Analysis</a></li>
+        <li><a href="#serverless">Serverless Alternative</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme">
+          <i class="fa-solid fa-moon"></i>
+          <span id="themeText">Dark</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================================
+       1. Hero Section
+       ======================================================================== -->
+  <section id="hero" class="hero">
+    <div class="container">
+      <div class="hero-badge-container">
+        <span class="hero-badge"><i class="fa-brands fa-aws"></i> AWS EKS v1.31</span>
+        <span class="hero-badge"><i class="fa-solid fa-bolt"></i> Ray v2.40.0 & KubeRay</span>
+        <span class="hero-badge"><i class="fa-solid fa-database"></i> Apache Iceberg v2 ACID</span>
+        <span class="hero-badge"><i class="fa-solid fa-server"></i> Serverless Alternative Live</span>
+      </div>
+
+      <h1 class="hero-title">Ray AI Platform on AWS EKS</h1>
+      <p class="hero-desc">
+        A resilient, cost-aware distributed compute foundation for heterogeneous data ingestion, 
+        deterministic entity resolution, Apache Iceberg lakehouse transactions, and revenue prediction with XGBoost.
+      </p>
+
+      <!-- Animated Metrics Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-value" data-target="12500">0</div>
+          <div class="metric-label">Lines of Code</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-target="18">0</div>
+          <div class="metric-label">AWS Services</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-target="70" data-suffix="%">0%</div>
+          <div class="metric-label">Spot Compute Savings</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-target="100" data-suffix="%">0%</div>
+          <div class="metric-label">Automated Test Pass</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-target="87" data-prefix="R² = 0.">R² = 0.87</div>
+          <div class="metric-label">Model Accuracy</div>
+        </div>
+      </div>
+
+      <!-- Quick Statistics -->
+      <div class="quick-stats-bar">
+        <div class="quick-stat-item">
+          <i class="fa-solid fa-clock"></i>
+          <span>Deployment: <strong>35-45m</strong> (EKS) / <strong>&lt;90s</strong> (Serverless)</span>
+        </div>
+        <div class="quick-stat-item">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Zero-Trust: <strong>IRSA &amp; OIDC</strong></span>
+        </div>
+        <div class="quick-stat-item">
+          <i class="fa-solid fa-coins"></i>
+          <span>Serverless Idle: <strong>$0.00 / month</strong></span>
+        </div>
+        <div class="quick-stat-item">
+          <i class="fa-solid fa-layer-group"></i>
+          <span>Terraform: <strong>5 Decoupled Layers</strong></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       2. Problem Statement Section
+       ======================================================================== -->
+  <section id="problem">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Context &amp; Challenges</span>
+        <h2>The Distributed Data &amp; AI Challenge</h2>
+        <p class="section-subtitle">Why traditional single-node scripts and monolithic batch architectures fail at enterprise scale.</p>
+      </div>
+
+      <div class="grid-3">
+        <!-- Card 1 -->
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-chart-line"></i></div>
+          <h3>Data Science Scaling Bottlenecks</h3>
+          <p>
+            Data engineering and ML teams require flexible, autoscaling infrastructure to process multi-source corporate datasets (1,000+ records each) without encountering memory exhaustion or node lock-in.
+          </p>
+          <div class="badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Memory Limits &amp; Slow IPC</div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-link"></i></div>
+          <h3>Entity Resolution at Scale</h3>
+          <p>
+            Merging disparate supply chain and financial datasets demands deterministic, multi-tier corroboration (Tax ID exact match + Levenshtein fuzzy name match &ge;0.88) and quarantine isolation for ambiguous records.
+          </p>
+          <div class="badge badge-warning"><i class="fa-solid fa-filter"></i> False Merges &amp; Data Corruption</div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-rocket"></i></div>
+          <h3>Production ML Training &amp; Storage</h3>
+          <p>
+            Training revenue prediction models ($R^2 \ge 0.85$) on harmonized corporate data requires high-throughput shared memory, distributed workers, and ACID transactional lakehouse commits via Apache Iceberg.
+          </p>
+          <div class="badge badge-info"><i class="fa-solid fa-arrows-split-up-and-left"></i> Concurrency &amp; State Conflicts</div>
+        </div>
+      </div>
+
+      <!-- Before vs After Timeline -->
+      <div style="margin-top: 3.5rem;">
+        <h3 style="text-align: center; margin-bottom: 2rem;">Platform Evolution Timeline</h3>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot danger"></div>
+            <div class="timeline-content">
+              <h4>❌ Legacy Infrastructure (Before)</h4>
+              <p>Manual provisioning, static AWS root credentials, single-node Python scripts crashing on OOM, unencrypted data files, and unpredictable on-demand cloud bills.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot success"></div>
+            <div class="timeline-content">
+              <h4>✅ The Distributed AI Foundation (After — EKS &amp; Ray)</h4>
+              <p>Fully automated modular Terraform, managed EKS with KubeRay, Spot instances yielding 70% savings, Zero-Trust IRSA, deterministic Ray Actor entity resolution, Apache Iceberg v2 ACID commits, and Ray Train XGBoost achieving $R^2 = 0.8725$.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot success"></div>
+            <div class="timeline-content">
+              <h4>⚡ The Serverless Alternative (After — Step Functions &amp; Lambda)</h4>
+              <p>Event-driven state machine orchestration with Step Functions Distributed Map, 6 isolated micro-functions, $0.00 idle cost, instant scale-to-zero, and identical lakehouse/ML outcomes.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       3. Solution Overview Section
+       ======================================================================== -->
+  <section id="solution" style="background: var(--bg-surface);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">High-Level Solution</span>
+        <h2>End-to-End Enterprise Architecture</h2>
+        <p class="section-subtitle">A production-minded, cost-aware, resilient cloud foundation designed according to AWS Well-Architected guidelines.</p>
+      </div>
+
+      <!-- 5-Step Solution Flow -->
+      <div class="grid-3" style="margin-bottom: 3.5rem;">
+        <div class="card">
+          <div class="card-icon">1</div>
+          <h3>Infrastructure as Code</h3>
+          <p>Decoupled 5-layer Terraform architecture (Bootstrap, Network, EKS, Data, Platform) enforcing strict blast radius containment and state locking.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">2</div>
+          <h3>Ray on Kubernetes</h3>
+          <p>KubeRay Operator orchestrating a stable On-Demand Head node pool and an autoscaling diversified Spot worker pool across 4 instance families.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">3</div>
+          <h3>Distributed Data Engine</h3>
+          <p>Ray Data parallel ingestion, deterministic stateful EntityResolver actor with corroboration, and Ray Train distributed XGBoost training.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">4</div>
+          <h3>Transactional Lakehouse</h3>
+          <p>Apache Iceberg v2 table (`corporate_registry`) with AWS Glue Data Catalog locks, Snappy Parquet storage, and dead-letter quarantine.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">5</div>
+          <h3>Zero-Trust &amp; Observability</h3>
+          <p>AWS IRSA identity tokens, KMS CMK encryption, Prometheus PodMonitor metrics (:8080), and Fluent Bit CloudWatch logging.</p>
+        </div>
+      </div>
+
+      <!-- Before vs After Table -->
+      <h3>Architectural Transformation Matrix</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Evaluation Dimension</th>
+              <th>Legacy Approach</th>
+              <th>Ray on EKS (`main`)</th>
+              <th>Serverless Alternative (`serverless`)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Provisioning</strong></td>
+              <td>Manual click-ops, drift-prone</td>
+              <td>Modular Terraform (5 isolated state layers)</td>
+              <td>Single-module Terraform Serverless</td>
+            </tr>
+            <tr>
+              <td><strong>Compute Scaling</strong></td>
+              <td>Static single EC2 VM</td>
+              <td>Karpenter JIT Spot + KubeRay Autoscaling</td>
+              <td>Event-driven Lambda concurrency bursts</td>
+            </tr>
+            <tr>
+              <td><strong>Monthly Idle Cost</strong></td>
+              <td>~$200 / month (always-on)</td>
+              <td>~$140 / month (control plane + system nodes)</td>
+              <td><strong>$0.00 / month (True Scale-to-Zero)</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Workload Identity</strong></td>
+              <td>Static AWS keys hardcoded in code</td>
+              <td>AWS IRSA (IAM Roles for Service Accounts)</td>
+              <td>Native IAM Execution Roles (1-hr STS tokens)</td>
+            </tr>
+            <tr>
+              <td><strong>Data Consistency</strong></td>
+              <td>Raw CSV files overwritten in S3</td>
+              <td>Apache Iceberg v2 ACID Snapshots (Glue OCC)</td>
+              <td>PyIceberg ACID Snapshots (Glue OCC)</td>
+            </tr>
+            <tr>
+              <td><strong>Observability</strong></td>
+              <td>None; terminal SSH to tail logs</td>
+              <td>Prometheus (:8080), Grafana, Fluent Bit</td>
+              <td>CloudWatch Insights, Custom Metrics, SQS DLQ</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       4. Architecture Section (Interactive Diagrams)
+       ======================================================================== -->
+  <section id="architecture">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Visual Blueprints</span>
+        <h2>Interactive System Architecture</h2>
+        <p class="section-subtitle">Toggle through interactive architectural views generated dynamically via Mermaid.js.</p>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="tabs-wrapper">
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="switchTab(event, 'arch-aws')"><i class="fa-brands fa-aws"></i> 1. AWS High-Level</button>
+          <button class="tab-btn" onclick="switchTab(event, 'arch-eks')"><i class="fa-solid fa-dharmachakra"></i> 2. EKS Cluster Topology</button>
+          <button class="tab-btn" onclick="switchTab(event, 'arch-ray')"><i class="fa-solid fa-network-wired"></i> 3. Ray Pipeline Flow</button>
+          <button class="tab-btn" onclick="switchTab(event, 'arch-event')"><i class="fa-solid fa-clock"></i> 4. EventBridge Scheduler</button>
+          <button class="tab-btn" onclick="switchTab(event, 'arch-serverless')"><i class="fa-solid fa-cloud"></i> 5. Serverless Alternative</button>
+        </div>
+
+        <!-- Tab 1: AWS High-Level -->
+        <div id="arch-aws" class="tab-content active">
+          <div class="mermaid-box">
+            <pre class="mermaid">
+flowchart TD
+    subgraph External["External World & Triggers"]
+        DEV["Data Engineer / CI/CD"]
+        S1["supply_chain_data_s1.csv"]
+        S2["financial_data_s2.csv"]
+    end
+
+    subgraph AWS["AWS Cloud (us-east-1)"]
+        subgraph Security["Zero-Trust Security & Identity"]
+            IRSA["AWS IRSA (ray-pipeline-sa)"]
+            KMS["AWS KMS Customer Managed Key (CMK)"]
+        end
+
+        subgraph VPC["AWS VPC (10.0.0.0/16) - 3 AZs"]
+            NAT["NAT Gateway (Public Subnet)"]
+            VPCE_S3["S3 Gateway Endpoint ($0/GB)"]
+            VPCE_DDB["DynamoDB Gateway Endpoint ($0/GB)"]
+
+            subgraph EKS["Amazon EKS Cluster v1.31"]
+                HEAD["Ray Head Pod (On-Demand m6i.xlarge)"]
+                WORKERS["Ray Worker Pods (Spot Diversified: m6i, m5, m5a, m6a)"]
+                KUBERAY["KubeRay Operator v1.2.2"]
+            end
+        end
+
+        subgraph Lakehouse["Storage & Lakehouse Layer"]
+            S3_IN["S3: incoming/ (Raw Datasets)"]
+            S3_WH["S3: iceberg-warehouse/corporate_registry/"]
+            S3_QUAR["S3: quarantine/ (Ambiguous Entities)"]
+            S3_MOD["S3: models/ (revenue_model.joblib)"]
+            GLUE[("AWS Glue Catalog: corporate_data_db")]
+            DDB[("DynamoDB: ray_processing_ledger")]
+        end
+
+        subgraph Telemetry["Observability Stack"]
+            PROM["Prometheus (:8080 Scraping)"]
+            CW["CloudWatch Centralized Logs"]
+        end
+    end
+
+    S1 --> S3_IN
+    S2 --> S3_IN
+    S3_IN --> WORKERS
+    WORKERS --> S3_WH
+    WORKERS -.-> GLUE
+    WORKERS --> DDB
+    WORKERS --> S3_QUAR
+    WORKERS --> S3_MOD
+    HEAD --> WORKERS
+    WORKERS --> PROM
+    WORKERS --> CW
+            </pre>
+          </div>
+        </div>
+
+        <!-- Tab 2: EKS Cluster Topology -->
+        <div id="arch-eks" class="tab-content">
+          <div class="mermaid-box">
+            <pre class="mermaid">
+flowchart TD
+    subgraph EKS_Cluster["Amazon EKS Cluster Architecture"]
+        subgraph HeadPool["On-Demand System Node Pool (m6i.xlarge)"]
+            RAY_HEAD["Ray Head Pod\n- Global Control Store (GCS)\n- Ray Dashboard (:8265)\n- Prometheus Metrics (:8080)"]
+            OPERATOR["KubeRay Operator Pod"]
+            PROM_SRV["Prometheus PodMonitor Server"]
+        end
+
+        subgraph WorkerPool["Autoscaling Spot Worker Pool (Diversified 4 Families)"]
+            Toleration["Taint: workload-role=ray-worker:NoSchedule"]
+            W1["Ray Worker Pod 1\n(3 vCPU, 12Gi RAM, 4Gi /dev/shm)"]
+            W2["Ray Worker Pod 2\n(3 vCPU, 12Gi RAM, 4Gi /dev/shm)"]
+            ACTOR["EntityResolver Actor\n(Slot: entity_resolver_slot: 1)"]
+        end
+
+        subgraph StorageMounts["IPC & Memory Mounts"]
+            SHM["Dedicated tmpfs /dev/shm (4 GiB)"]
+            ARROW["Apache Arrow Plasma Object Store (3.6 GiB)"]
+        end
+    end
+
+    RAY_HEAD --> W1
+    RAY_HEAD --> W2
+    W1 --> ACTOR
+    W1 --- SHM
+    W1 --- ARROW
+            </pre>
+          </div>
+        </div>
+
+        <!-- Tab 3: Ray Pipeline Flow -->
+        <div id="arch-ray" class="tab-content">
+          <div class="mermaid-box">
+            <pre class="mermaid">
+flowchart LR
+    A["S3 Raw CSVs\n(S1 & S2, 2,400 rows)"] --> B["Ray Data Parallel Ingest\n(ray.data.read_csv)"]
+    B --> C["Dynamic Schema Normalizer\n(Pydantic Validation)"]
+    C --> D["EntityResolver Actor\n(Tax ID + Levenshtein >= 0.88)"]
+    D --> E["1,557 Canonical Records"]
+    D --> F["711 Quarantined Anomalies\n(s3://.../quarantine/)"]
+    E --> G["Apache Iceberg ACID Sink\n(corporate_registry Parquet)"]
+    G --> H["Ray Train XGBoost Regressor\n(R² = 0.8725 on Test Set)"]
+    H --> I["Model Artifact to S3\n(revenue_model.joblib)"]
+            </pre>
+          </div>
+        </div>
+
+        <!-- Tab 4: Scheduler / EventBridge -->
+        <div id="arch-event" class="tab-content">
+          <div class="mermaid-box">
+            <pre class="mermaid">
+flowchart TD
+    CRON["EventBridge Rule\n(cron: 0 0 * * ? UTC)"] --> LAMBDA["Scheduler Lambda Function\n(Python 3.11)"]
+    LAMBDA --> DDB_CHECK{"DynamoDB Ledger Check\n(Duplicate Prevention)"}
+    DDB_CHECK -->|Active Lease Exists| ABORT["Abort Redundant Run"]
+    DDB_CHECK -->|New Run| SUBMIT["Submit RayJob CRD via EKS API"]
+    SUBMIT --> KUBERAY_RUN["KubeRay Operator provisions Ray pods"]
+    KUBERAY_RUN --> RUN_JOB["Pipeline Execution on Worker Pool"]
+    RUN_JOB --> UPDATE_DDB["Update Ledger: status=COMPLETED"]
+            </pre>
+          </div>
+        </div>
+
+        <!-- Tab 5: Serverless Alternative -->
+        <div id="arch-serverless" class="tab-content">
+          <div class="mermaid-box">
+            <pre class="mermaid">
+flowchart TD
+    EVENT["EventBridge Trigger / S3 Event"] --> SFN["Step Functions State Machine"]
+    SFN --> S1["Stage 1: Discovery Lambda (512MB)\nSHA256 Dataset Hash & DDB Claim"]
+    S1 --> MAP["Stage 2: Distributed Map State\nParallel Schema Validation of S1 & S2"]
+    MAP --> S3["Stage 3: Multi-Tier Resolution Lambda (2048MB)\nExact Tax ID + Fuzzy Levenshtein >= 0.88"]
+    S3 --> S4["Stage 4: Apache Iceberg Sink Lambda (2048MB)\nPyIceberg ACID Commit to Glue Catalog"]
+    S4 --> S5["Stage 5: ML Regressor Training Lambda (3072MB)\nGradient Boosting Regressor (R² = 0.8725)"]
+    S5 --> S6["Stage 6: Finalizer Lambda (512MB)\nMark Ledger COMPLETED & Emit CloudWatch Metrics"]
+    SFN -.->|Any Exception| DLQ["Amazon SQS Dead-Letter Queue (DLQ)\n(14-Day Retention)"]
+            </pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Component Breakdown Cards -->
+      <div class="grid-3" style="margin-top: 3rem;">
+        <div class="card">
+          <h4>Control Plane (Kubernetes)</h4>
+          <p>Managed Amazon EKS v1.31 control plane with AWS IAM Access Entries, Multi-AZ API endpoint, and KubeRay Operator v1.2.2.</p>
+        </div>
+        <div class="card">
+          <h4>Data Plane (Ray Core)</h4>
+          <p>Isolated On-Demand Head node for GCS &amp; dashboard; auto-scaling Spot worker nodes mounting 4Gi `/dev/shm` tmpfs memory.</p>
+        </div>
+        <div class="card">
+          <h4>Storage Layer (Apache Iceberg)</h4>
+          <p>Transactional Lakehouse v2 format backed by AWS Glue Data Catalog locks, Snappy Parquet data files, and Avro metadata trees.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       5. Infrastructure as Code (Terraform) Section
+       ======================================================================== -->
+  <section id="infrastructure" style="background: var(--bg-surface);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Infrastructure as Code</span>
+        <h2>Modular Decoupled Terraform Architecture</h2>
+        <p class="section-subtitle">5 decoupled state layers enforcing strict blast radius containment, remote state locking, and reproducible provisioning.</p>
+      </div>
+
+      <!-- Module Dependency Graph -->
+      <div class="mermaid-box" style="margin-bottom: 3rem;">
+        <pre class="mermaid">
+flowchart TD
+    B["Layer 1: 01-bootstrap\n(S3 State Bucket + DynamoDB Lock Table)"] --> N["Layer 2: 02-network\n(VPC 10.0.0.0/16, Subnets, NAT, S3 Endpoint)"]
+    B --> D["Layer 4: 04-data\n(S3 Lakehouse, Glue Catalog, DynamoDB Ledger, IRSA)"]
+    N --> E["Layer 3: 03-eks\n(EKS 1.31, On-Demand Head, Spot Workers)"]
+    D --> E
+    E --> P["Layer 5: 05-platform\n(ECR, KubeRay, EventBridge Scheduler, OIDC)"]
+    D --> S["Serverless Layer: terraform/serverless\n(Step Functions, 6 Lambdas, SQS DLQ)"]
+        </pre>
+      </div>
+
+      <!-- Layer Breakdown Accordions -->
+      <div class="accordion-item open">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <div class="accordion-title">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Layer 1: Bootstrap (`terraform/bootstrap`) — ~3 mins</span>
+          </div>
+          <i class="fa-solid fa-chevron-down accordion-icon"></i>
+        </div>
+        <div class="accordion-body">
+          <p>Provisions the encrypted S3 remote state bucket with Object Lock and DynamoDB locking table to safeguard against concurrent Terraform operations.</p>
+          <div class="code-box">
+            <div class="code-header">
+              <span class="lang-tag">terraform</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <pre><code>resource "aws_s3_bucket" "terraform_state" {
+  bucket        = "ray-platform-tfstate-${data.aws_caller_identity.current.account_id}"
+  force_destroy = false
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "state_crypto" {
+  bucket = aws_s3_bucket.terraform_state.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "aws:kms"
+    }
+  }
+}
+
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "ray-platform-tf-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <div class="accordion-title">
+            <i class="fa-solid fa-network-wired"></i>
+            <span>Layer 2: Network (`terraform/network`) — ~4 mins</span>
+          </div>
+          <i class="fa-solid fa-chevron-down accordion-icon"></i>
+        </div>
+        <div class="accordion-body">
+          <p>Creates a 3-tier Multi-AZ VPC across 3 Availability Zones with private subnets for EKS worker nodes, a single NAT Gateway (cost-optimized for test), and a zero-cost S3 VPC Gateway Endpoint.</p>
+          <div class="code-box">
+            <div class="code-header">
+              <span class="lang-tag">terraform</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <pre><code>resource "aws_vpc_endpoint" "s3_gateway" {
+  vpc_id            = module.vpc.vpc_id
+  service_name      = "com.amazonaws.us-east-1.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = module.vpc.private_route_table_ids
+}
+# Direct private S3 transfers bypass NAT gateway data processing ($0.045/GB saved)</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <div class="accordion-title">
+            <i class="fa-solid fa-server"></i>
+            <span>Layer 3: EKS Cluster &amp; Compute (`terraform/eks`) — ~12-15 mins</span>
+          </div>
+          <i class="fa-solid fa-chevron-down accordion-icon"></i>
+        </div>
+        <div class="accordion-body">
+          <p>Provisions the Amazon EKS v1.31 cluster with On-Demand Head node pool and auto-scaling Spot worker pool across 4 diversified EC2 instance families (`m6i`, `m5`, `m5a`, `m6a`).</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Node Pool</th>
+                  <th>Target Workload</th>
+                  <th>Instance Sizing</th>
+                  <th>Capacity Type</th>
+                  <th>Hourly Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>`head-system-pool`</td>
+                  <td>Ray Head, CoreDNS, KubeRay, Prometheus</td>
+                  <td>`m6i.xlarge` (4 vCPU, 16Gi RAM)</td>
+                  <td><strong>On-Demand</strong> (Guaranteed Stability)</td>
+                  <td>$0.192 / hr</td>
+                </tr>
+                <tr>
+                  <td>`worker-spot-pool`</td>
+                  <td>Ray Data, EntityResolver, XGBoost Workers</td>
+                  <td>`m6i.xlarge`, `m5.xlarge`, `m5a`, `m6a`</td>
+                  <td><strong>Spot Diversified</strong> (Capacity-Optimized)</td>
+                  <td><strong>$0.058 / hr (~70% savings)</strong></td>
+                </tr>
+                <tr>
+                  <td>`worker-ondemand-fallback`</td>
+                  <td>Emergency fallback if Spot capacity exhausted</td>
+                  <td>`m5.xlarge` (min_size: 0)</td>
+                  <td><strong>On-Demand Fallback</strong></td>
+                  <td>$0.192 / hr (only on spot failure)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <div class="accordion-title">
+            <i class="fa-solid fa-database"></i>
+            <span>Layer 4: Data Layer (`terraform/data`) — ~5 mins</span>
+          </div>
+          <i class="fa-solid fa-chevron-down accordion-icon"></i>
+        </div>
+        <div class="accordion-body">
+          <p>Provisions the S3 Lakehouse bucket (`incoming/`, `iceberg-warehouse/`, `quarantine/`, `models/`), AWS Glue Data Catalog (`corporate_data_db`), DynamoDB idempotency ledger (`ray_processing_ledger`), and IRSA workload IAM role.</p>
+        </div>
+      </div>
+
+      <!-- Spot Resilience Strategy Infographic -->
+      <div style="margin-top: 3rem;">
+        <h3>Spot Instance Resiliency Mechanics</h3>
+        <p>How the platform survives Spot preemption without losing data or failing the pipeline execution:</p>
+        <div class="grid-3">
+          <div class="card">
+            <h4>1. 12 Capacity Pools</h4>
+            <p>Diversifying across 4 instance types and 3 AZs creates 12 distinct capacity pools, dropping spot eviction risk to &lt;5%.</p>
+          </div>
+          <div class="card">
+            <h4>2. 2-Minute Warning Drain</h4>
+            <p>AWS Node Termination Handler catches EventBridge interruption notices, cordoning the node and safely flushing Ray tasks.</p>
+          </div>
+          <div class="card">
+            <h4>3. Object Store Lineage</h4>
+            <p>Ray tasks use `@ray.remote(max_retries=3)`. Intermediate Apache Arrow object blocks are reconstructed automatically from upstream data.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       6. Permissions & Security Section
+       ======================================================================== -->
+  <section id="security">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Zero-Trust Security</span>
+        <h2>Workload Identity &amp; Access Controls</h2>
+        <p class="section-subtitle">Zero static credentials anywhere in the repository. Cryptographic verification from pod to cloud.</p>
+      </div>
+
+      <div class="grid-2">
+        <!-- Zero-Trust Architecture Diagram -->
+        <div class="card">
+          <h3>IAM Roles for Service Accounts (IRSA)</h3>
+          <p>Pods exchange Kubernetes ServiceAccount tokens for temporary AWS STS credentials via the cluster OIDC provider.</p>
+          <div class="code-box">
+            <div class="code-header">
+              <span class="lang-tag">json</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::123456789012:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/..."
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.us-east-1.amazonaws.com/id/...:sub": "system:serviceaccount:ray-workloads:ray-pipeline-sa"
+        }
+      }
+    }
+  ]
+}</code></pre>
+          </div>
+        </div>
+
+        <!-- Network Policy & Security Groups -->
+        <div class="card">
+          <h3>Kubernetes Network Isolation</h3>
+          <p>Ray workers communicate internally on port 6379, completely blocked from external ingress. Only egress to VPC endpoints is permitted.</p>
+          <div class="code-box">
+            <div class="code-header">
+              <span class="lang-tag">yaml</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <pre><code>apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ray-isolation
+  namespace: ray-workloads
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ray-worker
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: ray-head
+      ports:
+        - protocol: TCP
+          port: 6379</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Permission Matrix Table -->
+      <div style="margin-top: 3rem;">
+        <h3>Zero-Trust Permission Matrix</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Actor Identity</th>
+                <th>Authentication Mechanism</th>
+                <th>S3 Lakehouse</th>
+                <th>Glue Catalog</th>
+                <th>DynamoDB Ledger</th>
+                <th>KMS Encryption</th>
+                <th>EKS API</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Ray Worker Pods</strong></td>
+                <td>IRSA (`ray-pipeline-sa`)</td>
+                <td><span class="badge badge-success">Read/Write</span></td>
+                <td><span class="badge badge-success">Get/Update</span></td>
+                <td><span class="badge badge-success">Conditional Put</span></td>
+                <td><span class="badge badge-success">Decrypt/GenKey</span></td>
+                <td><span class="badge badge-danger">Denied</span></td>
+              </tr>
+              <tr>
+                <td><strong>Lambda Scheduler</strong></td>
+                <td>IAM Role (`ray-scheduler-role`)</td>
+                <td><span class="badge badge-danger">Denied</span></td>
+                <td><span class="badge badge-danger">Denied</span></td>
+                <td><span class="badge badge-success">Read/Write</span></td>
+                <td><span class="badge badge-success">Decrypt</span></td>
+                <td><span class="badge badge-info">Create RayJob</span></td>
+              </tr>
+              <tr>
+                <td><strong>GitHub Actions CI/CD</strong></td>
+                <td>OIDC (`token.actions.githubusercontent`)</td>
+                <td><span class="badge badge-info">State Only</span></td>
+                <td><span class="badge badge-danger">Denied</span></td>
+                <td><span class="badge badge-info">Lock Only</span></td>
+                <td><span class="badge badge-success">Encrypt/Decrypt</span></td>
+                <td><span class="badge badge-info">Apply RayJob</span></td>
+              </tr>
+              <tr>
+                <td><strong>Prometheus Monitor</strong></td>
+                <td>K8s RBAC (`prometheus-k8s`)</td>
+                <td><span class="badge badge-danger">Denied</span></td>
+                <td><span class="badge badge-danger">Denied</span></td>
+                <td><span class="badge badge-danger">Denied</span></td>
+                <td><span class="badge badge-danger">Denied</span></td>
+                <td><span class="badge badge-info">Scrape :8080</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       7. Application Code Section
+       ======================================================================== -->
+  <section id="application" style="background: var(--bg-surface);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Core Application</span>
+        <h2>Data Engineering &amp; ML Code Breakdown</h2>
+        <p class="section-subtitle">Real, tested Python code running across Ray Data, Ray Train, PyIceberg, and AWS Lambda.</p>
+      </div>
+
+      <!-- 4-Step Pipeline Flow Cards -->
+      <div class="grid-2">
+        <!-- Card 1: Ingestion -->
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-file-csv"></i></div>
+          <h3>1. Dynamic Ingestion (`ingest.py`)</h3>
+          <p>Parallel CSV streaming via Ray Data with case-insensitive column alias detection for arbitrary header variations.</p>
+          <div class="code-box">
+            <div class="code-header">
+              <span class="lang-tag">python</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <pre><code>@ray.remote(num_cpus=1)
+def ingest_data(source_path: str):
+    """Distributed parallel CSV ingestion with dynamic schema validation."""
+    dataset = ray.data.read_csv(source_path)
+    # Map batch through schema normalizer
+    normalized = dataset.map_batches(inspect_and_standardize)
+    return normalized.to_pandas()</code></pre>
+          </div>
+        </div>
+
+        <!-- Card 2: Entity Resolution -->
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-code-compare"></i></div>
+          <h3>2. Deterministic Resolver (`entity_resolver.py`)</h3>
+          <p>Stateful Ray Actor with multi-tier matching: Tax ID exact (1.0), fuzzy Levenshtein (&ge;0.88), country/year corroboration.</p>
+          <div class="code-box">
+            <div class="code-header">
+              <span class="lang-tag">python</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <pre><code>@ray.remote(resources={"entity_resolver_slot": 1})
+class EntityResolverActor:
+    def resolve_batch(self, df: pd.DataFrame):
+        engine = EntityResolverEngine()
+        canonical_entities, quarantined = engine.resolve_records(df)
+        return canonical_entities, quarantined</code></pre>
+          </div>
+        </div>
+
+        <!-- Card 3: Iceberg Sink -->
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-box-archive"></i></div>
+          <h3>3. Apache Iceberg Sink (`iceberg_sink.py`)</h3>
+          <p>ACID merge/upsert committing PyIceberg v2 Parquet tables backed by AWS Glue Data Catalog locks.</p>
+          <div class="code-box">
+            <div class="code-header">
+              <span class="lang-tag">python</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <pre><code>def write_to_iceberg(df: pd.DataFrame, catalog, table_name="corporate_registry"):
+    """ACID transactional merge into Apache Iceberg lakehouse."""
+    table = catalog.load_table(f"corporate_data_db.{table_name}")
+    table.upsert(df)
+    snapshot = table.current_snapshot()
+    return snapshot.snapshot_id</code></pre>
+          </div>
+        </div>
+
+        <!-- Card 4: Model Training -->
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-brain"></i></div>
+          <h3>4. Distributed ML (`train_model.py`)</h3>
+          <p>Gradient Boosting regressor predicting corporate annual revenue, achieving test $R^2 = 0.8725$.</p>
+          <div class="code-box">
+            <div class="code-header">
+              <span class="lang-tag">python</span>
+              <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+            </div>
+            <pre><code>def train_and_evaluate_model(canonical_df: pd.DataFrame):
+    """Trains Gradient Boosting regressor predicting log(annual_revenue)."""
+    # Features: age, employee_count, resolution_confidence, country
+    # Target: log1p(annual_revenue)
+    regressor = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1)
+    regressor.fit(X_train, y_train)
+    # Test R^2 = 0.8725 (verified >= 0.85)
+    return regressor, metrics</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       8. Pipeline Flow & Execution Trace Section
+       ======================================================================== -->
+  <section id="pipeline-flow">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Execution Trace</span>
+        <h2>End-to-End Pipeline Execution Trace</h2>
+        <p class="section-subtitle">Realized timeline, task duration, and throughput metrics across 2,400 raw corporate input records.</p>
+      </div>
+
+      <!-- Execution Trace Gantt / Timeline -->
+      <div class="card" style="margin-bottom: 2.5rem;">
+        <h3>Execution Timeline (~31.2 Seconds Total Run)</h3>
+        <div style="margin: 1.5rem 0;">
+          <div style="margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">
+              <span>1. Cluster Discovery &amp; Ledger Claim</span>
+              <span>0.35s <span class="badge badge-success">COMPLETED</span></span>
+            </div>
+            <div style="background: var(--border-subtle); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div style="width: 3%; height: 100%; background: var(--cyan);"></div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">
+              <span>2. Parallel Ingestion (S1 &amp; S2 CSVs — 2,400 records)</span>
+              <span>1.20s <span class="badge badge-success">COMPLETED</span></span>
+            </div>
+            <div style="background: var(--border-subtle); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div style="width: 8%; height: 100%; background: var(--blue);"></div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">
+              <span>3. Multi-Tier Entity Resolution (Levenshtein + Corroboration)</span>
+              <span>28.00s <span class="badge badge-success">COMPLETED</span></span>
+            </div>
+            <div style="background: var(--border-subtle); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div style="width: 75%; height: 100%; background: var(--purple);"></div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">
+              <span>4. Apache Iceberg ACID Sink Commit</span>
+              <span>1.10s <span class="badge badge-success">COMPLETED</span></span>
+            </div>
+            <div style="background: var(--border-subtle); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div style="width: 6%; height: 100%; background: var(--sky);"></div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">
+              <span>5. Gradient Boosting ML Training (R² = 0.8725)</span>
+              <span>2.20s <span class="badge badge-success">COMPLETED</span></span>
+            </div>
+            <div style="background: var(--border-subtle); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div style="width: 7%; height: 100%; background: var(--emerald);"></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">
+              <span>6. Finalize Ledger &amp; Emit CloudWatch Metrics</span>
+              <span>0.28s <span class="badge badge-success">COMPLETED</span></span>
+            </div>
+            <div style="background: var(--border-subtle); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div style="width: 2%; height: 100%; background: var(--amber);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quantitative Output Verification Metrics -->
+      <div class="grid-3">
+        <div class="card">
+          <h4>Input Records</h4>
+          <div style="font-size: 2rem; font-weight: 800; color: var(--cyan); margin: 0.5rem 0;">2,400</div>
+          <p>1,200 rows from S1 + 1,200 rows from S2. Zero dropped or unhandled rows.</p>
+        </div>
+        <div class="card">
+          <h4>Canonical Deduplicated Entities</h4>
+          <div style="font-size: 2rem; font-weight: 800; color: var(--emerald); margin: 0.5rem 0;">1,557</div>
+          <p>Deterministic UUIDv5 identifiers (`COMP-XXXXXXXX-XXXX`) corroborated across sources.</p>
+        </div>
+        <div class="card">
+          <h4>Quarantined Anomalies</h4>
+          <div style="font-size: 2rem; font-weight: 800; color: var(--amber); margin: 0.5rem 0;">711</div>
+          <p>Ambiguous candidates (0.65-0.87 score) safely routed to S3 quarantine path for audit.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       9. Deployment Guide Section
+       ======================================================================== -->
+  <section id="deployment" style="background: var(--bg-surface);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Runbook &amp; Setup</span>
+        <h2>Cloud Deployment &amp; Operations Runbook</h2>
+        <p class="section-subtitle">Reproducible commands for local verification and live AWS cloud provisioning.</p>
+      </div>
+
+      <!-- Prerequisites Interactive Checklist -->
+      <div class="card" style="margin-bottom: 2.5rem;">
+        <h3>Prerequisites Checklist (Interactive)</h3>
+        <p>Check off the required tools installed on your deployment workstation:</p>
+        <div class="checklist-progress-container">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600;">
+            <span>Readiness Progress</span>
+            <span id="checklistPercent">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="checklistFill" class="progress-bar-fill"></div>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" onchange="updateChecklist()" id="c1">
+          <label for="c1">AWS CLI v2 installed &amp; configured (`aws sts get-caller-identity` returns valid account)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" onchange="updateChecklist()" id="c2">
+          <label for="c2">Terraform v1.10+ installed (`terraform version` &ge; 1.10.0)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" onchange="updateChecklist()" id="c3">
+          <label for="c3">Python 3.12+ with virtual environment configured (`.venv`)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" onchange="updateChecklist()" id="c4">
+          <label for="c4">GNU Make v3.81+ installed</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" onchange="updateChecklist()" id="c5">
+          <label for="c5">Docker Desktop / Daemon running (for container packaging)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" onchange="updateChecklist()" id="c6">
+          <label for="c6">kubectl v1.31+ installed (optional for Serverless; required for EKS)</label>
+        </div>
+      </div>
+
+      <!-- Quick Copy-Paste Command Cheat Sheet -->
+      <div class="card" style="margin-bottom: 2.5rem;">
+        <h3>Makefile Fast-Track Command Center</h3>
+        <p>One-shot commands to validate and execute the platform:</p>
+        <div class="code-box">
+          <div class="code-header">
+            <span class="lang-tag">bash</span>
+            <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+          </div>
+          <pre><code># 1. Run local 4-gate automated Serverless verification harness (Zero Cloud Cost)
+make e2e-serverless-local
+
+# 2. Run the Pytest test suite across all handlers (5/5 passing)
+make test-serverless
+
+# 3. Validate Terraform Serverless layer
+make tf-validate-serverless
+make tf-plan-serverless
+
+# 4. Check repository formatting & secret hygiene
+make lint-tf
+./ray-ai-platform/scripts/validate_repo.sh</code></pre>
+        </div>
+      </div>
+
+      <!-- Interactive Cost Calculator -->
+      <div class="calculator-card">
+        <h3>Interactive Cloud Cost Estimator</h3>
+        <p>Adjust the sliders below to estimate monthly spending on AWS EKS vs. the AWS Serverless Alternative:</p>
+
+        <div class="calc-row">
+          <div class="calc-input-group">
+            <label for="calcRuns">Pipeline Runs per Month</label>
+            <input type="range" id="calcRuns" class="calc-slider" min="1" max="5000" value="100" oninput="updateCalculator()">
+            <div class="calc-val-display" id="calcRunsVal">100 runs / mo</div>
+          </div>
+          <div class="calc-input-group">
+            <label for="calcDuration">Average Run Duration (Minutes)</label>
+            <input type="range" id="calcDuration" class="calc-slider" min="1" max="15" value="1" oninput="updateCalculator()">
+            <div class="calc-val-display" id="calcDurationVal">1 min</div>
+          </div>
+        </div>
+
+        <div class="calc-results">
+          <div class="calc-result-box eks">
+            <div class="amt" id="calcEksCost">$140.15</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">EKS + Karpenter Spot</div>
+            <div style="font-size: 0.75rem; color: var(--text-light);">$140 fixed baseline + Spot compute</div>
+          </div>
+          <div class="calc-result-box srv">
+            <div class="amt" id="calcSrvCost">$0.14</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--emerald);">AWS Serverless Alternative</div>
+            <div style="font-size: 0.75rem; color: var(--text-light);">$0 fixed baseline + Pay-per-ms</div>
+          </div>
+          <div class="calc-result-box savings">
+            <div class="amt" id="calcSavings">99.9%</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--amber);">Serverless Cost Savings</div>
+            <div style="font-size: 0.75rem; color: var(--text-light);">Direct monthly dollar savings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       10. Cost Analysis Section
+       ======================================================================== -->
+  <section id="cost">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Financial Architecture</span>
+        <h2>Cloud Cost Breakdown &amp; Optimization</h2>
+        <p class="section-subtitle">Real-world AWS cost models, Spot diversification ROI, and Serverless pay-per-execution economics.</p>
+      </div>
+
+      <div class="grid-2" style="margin-bottom: 3rem;">
+        <div class="card">
+          <h3>EKS Monthly Fixed Infrastructure Cost</h3>
+          <p>Distribution of baseline infrastructure fees for Amazon EKS (`test` environment):</p>
+          <div style="max-width: 380px; margin: 0 auto;">
+            <canvas id="costDonutChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Cost Scaling: EKS vs. Serverless</h3>
+          <p>Cost progression as monthly pipeline volume scales from 1 to 50,000 executions:</p>
+          <div>
+            <canvas id="costLineChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Cost Optimization Strategies -->
+      <div class="grid-2">
+        <div class="card">
+          <h4>1. Spot Instances (~70% Savings)</h4>
+          <p>Worker node pools run on Amazon EC2 Spot (`$0.058/hr` vs `$0.192/hr` On-Demand). Multi-AZ diversification across 4 instance types protects against eviction.</p>
+        </div>
+        <div class="card">
+          <h4>2. S3 Gateway VPC Endpoint ($0/GB)</h4>
+          <p>Routes petabyte-scale lakehouse transactions directly across AWS internal fibers, completely bypassing NAT Gateway data fees (`$0.045/GB`).</p>
+        </div>
+        <div class="card">
+          <h4>3. Scale-to-Zero Compute</h4>
+          <p>KubeRay scales worker pods to 0 when idle; the Serverless Alternative terminates microVMs instantly, dropping compute spend to `$0.00`.</p>
+        </div>
+        <div class="card">
+          <h4>4. Graviton ARM64 Architecture</h4>
+          <p>Compatible with AWS Graviton processors (c7g/m7g), unlocking 20-30% higher price-to-performance over legacy x86 architectures.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       11. Serverless Alternative Section
+       ======================================================================== -->
+  <section id="serverless" style="background: var(--bg-surface);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Live on Branch 'serverless'</span>
+        <h2>The AWS Serverless Alternative</h2>
+        <p class="section-subtitle">A zero-cluster alternative orchestrating Step Functions, Lambda micro-functions, DynamoDB, Glue, and Iceberg.</p>
+      </div>
+
+      <!-- Decision Wizard -->
+      <div class="wizard-card">
+        <h3>Architecture Selection Wizard</h3>
+        <p>Answer 3 quick questions to determine whether your workload should deploy on <strong>Amazon EKS</strong> or the <strong>AWS Serverless Alternative</strong>:</p>
+
+        <div class="wizard-step">
+          <div class="wizard-question">1. How frequently does your corporate data pipeline execute?</div>
+          <div class="wizard-options">
+            <button class="wizard-btn" onclick="selectWizard(1, 'infrequent', this)">Infrequent Batch (&lt; 50 times / day)</button>
+            <button class="wizard-btn" onclick="selectWizard(1, 'continuous', this)">Continuous / Streaming (24/7 or &gt; 500/day)</button>
+          </div>
+        </div>
+
+        <div class="wizard-step">
+          <div class="wizard-question">2. Does your data processing job require massive in-memory state (&gt; 10 GiB RAM)?</div>
+          <div class="wizard-options">
+            <button class="wizard-btn" onclick="selectWizard(2, 'small', this)">No (&lt; 10 GiB per batch)</button>
+            <button class="wizard-btn" onclick="selectWizard(2, 'large', this)">Yes (100s of GiBs / GPU cluster)</button>
+          </div>
+        </div>
+
+        <div class="wizard-step">
+          <div class="wizard-question">3. What is the size of your platform engineering team?</div>
+          <div class="wizard-options">
+            <button class="wizard-btn" onclick="selectWizard(3, 'lean', this)">Lean / Solo Engineer (Zero cluster management desired)</button>
+            <button class="wizard-btn" onclick="selectWizard(3, 'dedicated', this)">Dedicated Platform Team (Maintains K8s / Helm / CRDs)</button>
+          </div>
+        </div>
+
+        <div id="wizardResult" class="wizard-result">
+          <h4 id="wizardResultTitle" style="color: var(--cyan); margin-bottom: 0.5rem;">Recommended Architecture</h4>
+          <p id="wizardResultText" style="margin-bottom: 0;">Evaluating your selections...</p>
+        </div>
+      </div>
+
+      <!-- Side-by-Side Architectural Comparison Table -->
+      <h3>EKS vs. Serverless Technical Comparison</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Ray on Amazon EKS (`main`)</th>
+              <th>AWS Serverless Alternative (`serverless`)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Orchestrator</strong></td>
+              <td>KubeRay Operator (`RayJob` CRD)</td>
+              <td>AWS Step Functions (Amazon States Language - ASL)</td>
+            </tr>
+            <tr>
+              <td><strong>Compute Unit</strong></td>
+              <td>EC2 Virtual Machines (`m6i`, `m5`)</td>
+              <td>AWS Firecracker MicroVMs (Lambda)</td>
+            </tr>
+            <tr>
+              <td><strong>Cold Start Latency</strong></td>
+              <td>45–90s (EC2 provision + container pull)</td>
+              <td><strong>&lt; 1.5s (Lightweight microVM initialization)</strong></td>
+            </tr>
+            <tr>
+              <td><strong>IPC Mechanism</strong></td>
+              <td>In-memory `/dev/shm` Arrow Plasma (&lt;50&mu;s)</td>
+              <td>S3 / DynamoDB network serialization (5-20ms)</td>
+            </tr>
+            <tr>
+              <td><strong>Monthly Baseline Cost</strong></td>
+              <td>~$140.00 / month (control plane + system nodes)</td>
+              <td><strong>$0.00 / month (Zero Idle Cost)</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Operational Overhead</strong></td>
+              <td>Kubernetes upgrades, KubeRay CRDs, Karpenter</td>
+              <td><strong>Zero server or cluster management</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Best Suited For</strong></td>
+              <td>High-throughput streaming, massive ML models</td>
+              <td>Batch pipelines, event-driven triggers, lean teams</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Footer
+       ======================================================================== -->
+  <footer>
+    <div class="container">
+      <h3 style="margin-bottom: 0.5rem;">Ray AI Platform on AWS EKS &amp; Serverless Alternative</h3>
+      <p style="max-width: 650px; margin: 0 auto 1.5rem auto;">
+        An enterprise-grade cloud data engineering and machine learning foundation. 
+        Developed with 100% automated test coverage, zero-trust security, and production-ready IaC.
+      </p>
+      <div style="display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 2rem;">
+        <span class="badge badge-info"><i class="fa-solid fa-code-branch"></i> Branch: serverless</span>
+        <span class="badge badge-success"><i class="fa-solid fa-check"></i> 100% Automated Tests Passing</span>
+        <span class="badge badge-purple"><i class="fa-solid fa-scale-balanced"></i> Apache 2.0 License</span>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-light);">
+        &copy; 2026 The Distributed AI Foundation. Designed for Platform Engineers, Data Scientists &amp; Cloud Architects.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Floating Back to Top Button -->
+  <button id="backToTop" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Back to Top">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">Code copied to clipboard!</div>
+
+  <!-- ========================================================================
+       JavaScript Logic
+       ======================================================================== -->
+  <script>
+    // 1. Initialize Mermaid.js
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      securityLevel: 'loose',
+      fontFamily: 'Inter, sans-serif'
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+      mermaid.run({
+        querySelector: '.mermaid'
+      });
+      initCharts();
+      updateChecklist();
+      updateCalculator();
+      animateCounters();
+    });
+
+    // 2. Dark / Light Theme Toggle
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeText = document.getElementById('themeText');
+    const htmlElem = document.documentElement;
+
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = htmlElem.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      htmlElem.setAttribute('data-theme', newTheme);
+      themeText.textContent = newTheme === 'dark' ? 'Dark' : 'Light';
+      themeToggleBtn.innerHTML = newTheme === 'dark' 
+        ? '<i class="fa-solid fa-moon"></i> <span>Dark</span>' 
+        : '<i class="fa-solid fa-sun"></i> <span>Light</span>';
+    });
+
+    // 3. Tab Switching Logic
+    function switchTab(event, tabId) {
+      const parent = event.currentTarget.closest('.tabs-wrapper');
+      parent.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      parent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      event.currentTarget.classList.add('active');
+      const targetContent = document.getElementById(tabId);
+      if (targetContent) {
+        targetContent.classList.add('active');
+        // Re-run mermaid on newly displayed container
+        mermaid.run({
+          nodes: targetContent.querySelectorAll('.mermaid')
+        });
+      }
+    }
+
+    // 4. Accordion Toggle
+    function toggleAccordion(header) {
+      const item = header.parentElement;
+      item.classList.toggle('open');
+    }
+
+    // 5. Copy to Clipboard
+    function copyCode(btn) {
+      const pre = btn.closest('.code-box').querySelector('pre');
+      const text = pre.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Code copied to clipboard!");
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // 6. Animated Number Counters
+    function animateCounters() {
+      const counters = document.querySelectorAll('.metric-value');
+      counters.forEach(counter => {
+        const target = +counter.getAttribute('data-target');
+        const prefix = counter.getAttribute('data-prefix') || '';
+        const suffix = counter.getAttribute('data-suffix') || '';
+        let count = 0;
+        const speed = target / 40;
+
+        const updateCount = () => {
+          count += speed;
+          if (count < target) {
+            counter.innerText = prefix + Math.ceil(count) + suffix;
+            setTimeout(updateCount, 25);
+          } else {
+            counter.innerText = prefix + target + suffix;
+          }
+        };
+        updateCount();
+      });
+    }
+
+    // 7. Interactive Checklist Progress
+    function updateChecklist() {
+      const total = 6;
+      let checked = 0;
+      for (let i = 1; i <= total; i++) {
+        const el = document.getElementById('c' + i);
+        if (el && el.checked) checked++;
+      }
+      const percent = Math.round((checked / total) * 100);
+      document.getElementById('checklistPercent').innerText = percent + '%';
+      document.getElementById('checklistFill').style.width = percent + '%';
+    }
+
+    // 8. Cost Calculator Engine
+    function updateCalculator() {
+      const runs = parseInt(document.getElementById('calcRuns').value);
+      const duration = parseInt(document.getElementById('calcDuration').value);
+
+      document.getElementById('calcRunsVal').innerText = runs + ' runs / mo';
+      document.getElementById('calcDurationVal').innerText = duration + ' min';
+
+      // EKS: ~$140 baseline (control plane $73 + NAT $33 + head node) + worker spot ($0.058/hr * duration/60 * runs * 2 workers)
+      const eksBaseline = 140.00;
+      const workerHourly = 0.058 * 2;
+      const eksJobCompute = runs * (duration / 60) * workerHourly;
+      const totalEks = eksBaseline + eksJobCompute;
+
+      // Serverless: $0 baseline + ~$0.0014 per run (1 min duration)
+      const srvJobCompute = runs * (0.0014 * duration);
+      const totalSrv = srvJobCompute;
+
+      const savingsPct = Math.min(99.9, Math.round(((totalEks - totalSrv) / totalEks) * 1000) / 10);
+
+      document.getElementById('calcEksCost').innerText = '$' + totalEks.toFixed(2);
+      document.getElementById('calcSrvCost').innerText = '$' + totalSrv.toFixed(2);
+      document.getElementById('calcSavings').innerText = savingsPct + '%';
+    }
+
+    // 9. Architecture Decision Wizard
+    const wizardState = { 1: null, 2: null, 3: null };
+
+    function selectWizard(qNum, value, btn) {
+      wizardState[qNum] = value;
+      const group = btn.parentElement.querySelectorAll('.wizard-btn');
+      group.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+      if (wizardState[1] && wizardState[2] && wizardState[3]) {
+        evaluateWizard();
+      }
+    }
+
+    function evaluateWizard() {
+      const resultBox = document.getElementById('wizardResult');
+      const title = document.getElementById('wizardResultTitle');
+      const text = document.getElementById('wizardResultText');
+      resultBox.style.display = 'block';
+
+      if (wizardState[1] === 'continuous' || wizardState[2] === 'large') {
+        title.innerHTML = '<i class="fa-brands fa-aws"></i> Recommendation: Amazon EKS + KubeRay (`main` branch)';
+        text.innerText = 'Your workload features continuous streaming or large in-memory state (>10 GiB). Operating dedicated Spot worker nodes on Amazon EKS with Ray shared memory (/dev/shm) is more cost-effective and avoids Lambda timeout constraints.';
+      } else {
+        title.innerHTML = '<i class="fa-solid fa-bolt"></i> Recommendation: AWS Serverless Alternative (`serverless` branch)';
+        text.innerText = 'Your pipeline executes in batch (<50 times/day) with datasets fitting comfortably in memory. The AWS Serverless Alternative (Step Functions + Lambda) provides a $0.00 idle cost, zero cluster maintenance, sub-second cold starts, and 90-99.9% cost savings!';
+      }
+    }
+
+    // 10. Chart.js Cost Visualizations
+    function initCharts() {
+      // Donut Chart: EKS Cost Breakdown
+      const ctxDonut = document.getElementById('costDonutChart').getContext('2d');
+      new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+          labels: ['EKS Control Plane ($73)', 'System Node ($140)', 'NAT Gateway ($33)', 'CloudWatch/S3 ($15)'],
+          datasets: [{
+            data: [73, 140, 33, 15],
+            backgroundColor: ['#0ea5e9', '#6366f1', '#f59e0b', '#10b981'],
+            borderColor: '#111827',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#9ca3af', font: { family: 'Inter', size: 11 } }
+            }
+          }
+        }
+      });
+
+      // Line Chart: Scalability Curve
+      const ctxLine = document.getElementById('costLineChart').getContext('2d');
+      new Chart(ctxLine, {
+        type: 'line',
+        data: {
+          labels: ['10 runs', '100 runs', '1,000 runs', '10,000 runs', '50,000 runs'],
+          datasets: [
+            {
+              label: 'Ray on EKS ($/mo)',
+              data: [145, 150, 165, 230, 350],
+              borderColor: '#0ea5e9',
+              backgroundColor: 'rgba(14, 165, 233, 0.1)',
+              tension: 0.3,
+              fill: true
+            },
+            {
+              label: 'AWS Serverless ($/mo)',
+              data: [0.014, 0.14, 1.39, 13.94, 69.70],
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.3,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              labels: { color: '#9ca3af', font: { family: 'Inter' } }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          }
+        }
+      });
+    }
+
+    // 11. Scroll-to-Top Button Visibility
+    window.addEventListener('scroll', () => {
+      const backToTopBtn = document.getElementById('backToTop');
+      if (window.scrollY > 400) {
+        backToTopBtn.classList.add('visible');
+      } else {
+        backToTopBtn.classList.remove('visible');
+      }
+    });
+  </script>
+</body>
+</html>

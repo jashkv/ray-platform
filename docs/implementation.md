@@ -4,7 +4,7 @@
 - **Cloud Provider:** Amazon Web Services (AWS)
 - **Runtime Compute:** Amazon EKS (Kubernetes `1.31`) + KubeRay (`v1.2.2`) + Ray (`2.40.0`)
 - **Lakehouse Storage:** Apache Iceberg (Format v2) with AWS Glue Data Catalog & Amazon S3
-- **Related Design:** [`ray-ai-platform/docs/architecture.md`](file:///ray-ai-platform/docs/architecture.md)
+- **Related Design:** [`docs/architecture.md`](file:///docs/architecture.md)
 - **Document Version:** 3.0 (Comprehensive Merged Reference)
 - **Document Purpose:** Defines the complete ordered implementation plan, execution dependencies, deliverables per phase, schema normalization contracts, failure handling matrices, deployment runbooks, and validation checklists for **The Distributed AI Foundation**.
 
@@ -12,7 +12,7 @@
 
 ## 1. Purpose & Implementation Principles
 
-This guide operationalizes [`ray-ai-platform/docs/architecture.md`](file:///ray-ai-platform/docs/architecture.md) into a disciplined, 14-phase implementation sequence. It details both the concrete code artifacts created in this repository and the operational procedures required to deploy, validate, and maintain the platform.
+This guide operationalizes [`docs/architecture.md`](file:///docs/architecture.md) into a disciplined, 14-phase implementation sequence. It details both the concrete code artifacts created in this repository and the operational procedures required to deploy, validate, and maintain the platform.
 
 ### Core Implementation Principles
 
@@ -28,7 +28,7 @@ This guide operationalizes [`ray-ai-platform/docs/architecture.md`](file:///ray-
 
 ## 2. Requirements vs. Concrete Implementation Decisions
 
-| Requirement Area | Assignment Requirement | Concrete Architectural Decision |
+| Requirement Area | Platform Engineering Specification | Concrete Architectural Decision |
 | :--- | :--- | :--- |
 | **Compute & K8s** | Managed Kubernetes cluster with KubeRay Operator and $\ge 2$ node pools. | Amazon EKS `1.31` with KubeRay Operator `v1.2.2`. Dedicated On-Demand `head-system-pool` and autoscaling `worker-spot-pool` + `worker-ondemand-fallback`. |
 | **Spot Strategy** | Spot/preemptible worker strategy maintaining job resilience. | Multi-AZ, $4$-family (`m6i.xlarge`, `m5.xlarge`, `m5a.xlarge`, `m6a.xlarge`) Spot pool using `capacity-optimized` allocation, Node Termination Handler, and Ray task lineage replay. |
@@ -65,27 +65,27 @@ flowchart TD
 ## 4. Phase-by-Phase Implementation Specifications
 
 ### Phase 0: Discovery and Baseline
-- **Objective:** Audit development environment, installed tools, and assignment documentation; record versions, identify unknowns, and construct the requirement-to-test traceability matrix.
+- **Objective:** Audit development environment, installed tools, and system architectural specifications; record versions, identify unknowns, and construct the requirement-to-test traceability matrix.
 - **Dependencies:** None.
 - **Deliverables:**
   - Tool and environment audit (`terraform v1.15.8`, `aws-cli v2.35.9`, `python 3.12.13`, `git 2.39.3`).
-  - [`ray-ai-platform/REQUIREMENTS_TRACEABILITY.md`](file:///ray-ai-platform/REQUIREMENTS_TRACEABILITY.md).
-- **Validation Exit Condition:** All assignment requirements mapped to files and verification checks.
+  - [`docs/requirements.md`](file:///docs/requirements.md).
+- **Validation Exit Condition:** All core platform engineering requirements mapped to files and verification checks.
 
 ### Phase 1: Repository Foundation
 - **Objective:** Establish standard directory layout, code conventions, `.gitignore`, `.dockerignore`, linters, and repository integrity scripts.
 - **Dependencies:** Phase 0.
 - **Deliverables:**
   - Target directory tree: `terraform/`, `kubernetes/`, `application/`, `helm/`, `scripts/`, `docs/`.
-  - [`.gitignore`](file:///ray-ai-platform/.gitignore), [`.dockerignore`](file:///ray-ai-platform/.dockerignore), [`pyproject.toml`](file:///ray-ai-platform/pyproject.toml).
-  - Validation automation script [`scripts/validate_repo.sh`](file:///ray-ai-platform/scripts/validate_repo.sh).
+  - [`.gitignore`](file:///.gitignore), [`.dockerignore`](file:///.dockerignore), [`pyproject.toml`](file:///pyproject.toml).
+  - Validation automation script [`scripts/validate_repo.sh`](file:///scripts/validate_repo.sh).
 - **Validation Exit Condition:** Directory layout verified; secret scanner passes; Python compilation check succeeds.
 
 ### Phase 2: Terraform State Bootstrap
 - **Objective:** Provision remote state storage with server-side encryption, versioning, and state locking before deploying infrastructure.
 - **Dependencies:** Phase 1.
 - **Deliverables:**
-  - [`terraform/bootstrap/main.tf`](file:///ray-ai-platform/terraform/bootstrap/main.tf), `variables.tf`, `outputs.tf`, `terraform.tfvars.example`, `README.md`.
+  - [`terraform/bootstrap/main.tf`](file:///terraform/bootstrap/main.tf), `variables.tf`, `outputs.tf`, `terraform.tfvars.example`, `README.md`.
   - S3 bucket (`aws_s3_bucket`) with AES256/KMS encryption and Object Versioning.
   - DynamoDB table (`aws_dynamodb_table`) with `LockID` hash key for distributed state locking.
 - **Validation Exit Condition:** `terraform fmt -check` and `terraform validate` pass.
@@ -94,8 +94,8 @@ flowchart TD
 - **Objective:** Implement modular VPC across 3 Availability Zones with paired public/private subnets, NAT Gateway, and S3 Gateway VPC Endpoint.
 - **Dependencies:** Phase 2.
 - **Deliverables:**
-  - [`terraform/modules/vpc/`](file:///ray-ai-platform/terraform/modules/vpc/) reusable module.
-  - [`terraform/network/`](file:///ray-ai-platform/terraform/network/) root module (`main.tf`, `variables.tf`, `outputs.tf`).
+  - [`terraform/modules/vpc/`](file:///terraform/modules/vpc/) reusable module.
+  - [`terraform/network/`](file:///terraform/network/) root module (`main.tf`, `variables.tf`, `outputs.tf`).
   - S3 VPC Gateway Endpoint (`aws_vpc_endpoint.s3`) routing S3 traffic directly to private route tables at $0 data transfer cost.
 - **Validation Exit Condition:** Terraform validate succeeds; subnet CIDRs verified; zero-cost S3 endpoint route configured.
 
@@ -103,8 +103,8 @@ flowchart TD
 - **Objective:** Provision managed Amazon EKS cluster (v1.31) with KMS envelope encryption, modern EKS Access Entries, and separate node pools.
 - **Dependencies:** Phase 3.
 - **Deliverables:**
-  - [`terraform/modules/eks/`](file:///ray-ai-platform/terraform/modules/eks/) reusable module.
-  - [`terraform/eks/`](file:///ray-ai-platform/terraform/eks/) root module (`main.tf`, `node_groups.tf`, `access_entries.tf`, `variables.tf`, `outputs.tf`).
+  - [`terraform/modules/eks/`](file:///terraform/modules/eks/) reusable module.
+  - [`terraform/eks/`](file:///terraform/eks/) root module (`main.tf`, `node_groups.tf`, `access_entries.tf`, `variables.tf`, `outputs.tf`).
   - Stable On-Demand `head-system-pool` (`m6i.xlarge`, min: 1, desired: 2, max: 3).
   - Autoscaling `worker-spot-pool` diversified across 4 families (`m6i.xlarge`, `m5.xlarge`, `m5a.xlarge`, `m6a.xlarge`) and 3 AZs.
   - On-Demand fallback pool `worker-ondemand-fallback` (min: 0, desired: 0, max: 4).
@@ -114,8 +114,8 @@ flowchart TD
 - **Objective:** Provision lakehouse storage bucket, AWS Glue Catalog database, DynamoDB processing ledger, and IRSA least-privilege IAM roles.
 - **Dependencies:** Phase 4.
 - **Deliverables:**
-  - Modules: [`terraform/modules/s3_iceberg/`](file:///ray-ai-platform/terraform/modules/s3_iceberg/), [`ledger/`](file:///ray-ai-platform/terraform/modules/ledger/), [`irsa/`](file:///ray-ai-platform/terraform/modules/irsa/).
-  - [`terraform/data/`](file:///ray-ai-platform/terraform/data/) root module (`s3.tf`, `glue.tf`, `dynamodb.tf`, `iam_irsa.tf`).
+  - Modules: [`terraform/modules/s3_iceberg/`](file:///terraform/modules/s3_iceberg/), [`ledger/`](file:///terraform/modules/ledger/), [`irsa/`](file:///terraform/modules/irsa/).
+  - [`terraform/data/`](file:///terraform/data/) root module (`s3.tf`, `glue.tf`, `dynamodb.tf`, `iam_irsa.tf`).
   - IAM policy binding `s3:GetObject`, `s3:PutObject`, `glue:*`, and `dynamodb:*` to Kubernetes service account `ray-pipeline-sa`.
 - **Validation Exit Condition:** Terraform validate succeeds; IAM boundary inspection confirms zero static access keys.
 
@@ -123,52 +123,52 @@ flowchart TD
 - **Objective:** Implement reproducible dataset generation scripts creating 2 datasets ($\ge 1,000$ records each), schema normalization, deterministic multi-tier entity resolution, and revenue prediction model training.
 - **Dependencies:** Phase 1.
 - **Deliverables:**
-  - Dataset generator: [`application/src/generate_datasets.py`](file:///ray-ai-platform/application/src/generate_datasets.py).
-  - Datasets: [`application/data/supply_chain_data_s1.csv`](file:///ray-ai-platform/application/data/supply_chain_data_s1.csv) (1,200 rows) and [`application/data/financial_data_s2.csv`](file:///ray-ai-platform/application/data/financial_data_s2.csv) (1,200 rows).
-  - Normalization: [`application/src/normalizer.py`](file:///ray-ai-platform/application/src/normalizer.py) and [`schema_validator.py`](file:///ray-ai-platform/application/src/schema_validator.py).
-  - Entity Resolution: [`application/src/entity_resolver.py`](file:///ray-ai-platform/application/src/entity_resolver.py).
-  - Model Training: [`application/src/train_model.py`](file:///ray-ai-platform/application/src/train_model.py) and master orchestrator [`ray_pipeline.py`](file:///ray-ai-platform/application/src/ray_pipeline.py).
-- **Validation Exit Condition:** Unit tests in [`application/tests/`](file:///ray-ai-platform/application/tests/) pass; row counts $\ge 1,000$ verified; entity resolution accuracy checked.
+  - Dataset generator: [`application/src/generate_datasets.py`](file:///application/src/generate_datasets.py).
+  - Datasets: [`application/data/supply_chain_data_s1.csv`](file:///application/data/supply_chain_data_s1.csv) (1,200 rows) and [`application/data/financial_data_s2.csv`](file:///application/data/financial_data_s2.csv) (1,200 rows).
+  - Normalization: [`application/src/normalizer.py`](file:///application/src/normalizer.py) and [`schema_validator.py`](file:///application/src/schema_validator.py).
+  - Entity Resolution: [`application/src/entity_resolver.py`](file:///application/src/entity_resolver.py).
+  - Model Training: [`application/src/train_model.py`](file:///application/src/train_model.py) and master orchestrator [`ray_pipeline.py`](file:///application/src/ray_pipeline.py).
+- **Validation Exit Condition:** Unit tests in [`application/tests/`](file:///application/tests/) pass; row counts $\ge 1,000$ verified; entity resolution accuracy checked.
 
 ### Phase 7: Hardened Containerization
 - **Objective:** Create a hardened, production-ready, non-root Dockerfile based on official Ray images with pinned dependencies.
 - **Dependencies:** Phase 6.
 - **Deliverables:**
-  - [`application/Dockerfile`](file:///ray-ai-platform/application/Dockerfile) (base: `rayproject/ray:2.40.0-py311`, non-root user `ray`, UID 1000).
-  - Pinned [`application/requirements.txt`](file:///ray-ai-platform/application/requirements.txt).
-  - Image build and vulnerability check script [`scripts/build_image.sh`](file:///ray-ai-platform/scripts/build_image.sh).
+  - [`application/Dockerfile`](file:///application/Dockerfile) (base: `rayproject/ray:2.40.0-py311`, non-root user `ray`, UID 1000).
+  - Pinned [`application/requirements.txt`](file:///application/requirements.txt).
+  - Image build and vulnerability check script [`scripts/build_image.sh`](file:///scripts/build_image.sh).
 - **Validation Exit Condition:** Container build passes; runtime dependency integrity check executes cleanly.
 
 ### Phase 8: KubeRay & Kubernetes Manifests
 - **Objective:** Configure KubeRay Operator Helm values, `RayCluster` CRD with dedicated head/worker pools, 4Gi `/dev/shm` mounts, object store sizing, and `EntityResolver` scheduling constraints (`entity_resolver_slot: 1`), and `RayJob` CRD.
 - **Dependencies:** Phase 4, Phase 7.
 - **Deliverables:**
-  - Helm values: [`helm/kuberay-operator/values.yaml`](file:///ray-ai-platform/helm/kuberay-operator/values.yaml).
-  - Namespaces: [`kubernetes/namespaces/namespaces.yaml`](file:///ray-ai-platform/kubernetes/namespaces/namespaces.yaml) (`ray-system`, `ray-workloads`).
-  - Security: [`kubernetes/security/service-account.yaml`](file:///ray-ai-platform/kubernetes/security/service-account.yaml), `rbac.yaml`, `secrets.yaml`.
-  - Cluster & Job CRDs: [`kubernetes/ray/ray-cluster.yaml`](file:///ray-ai-platform/kubernetes/ray/ray-cluster.yaml) and [`kubernetes/jobs/ray-job.yaml`](file:///ray-ai-platform/kubernetes/jobs/ray-job.yaml).
-  - Validator: [`scripts/validate_k8s_manifests.sh`](file:///ray-ai-platform/scripts/validate_k8s_manifests.sh).
+  - Helm values: [`helm/kuberay-operator/values.yaml`](file:///helm/kuberay-operator/values.yaml).
+  - Namespaces: [`kubernetes/namespaces/namespaces.yaml`](file:///kubernetes/namespaces/namespaces.yaml) (`ray-system`, `ray-workloads`).
+  - Security: [`kubernetes/security/service-account.yaml`](file:///kubernetes/security/service-account.yaml), `rbac.yaml`, `secrets.yaml`.
+  - Cluster & Job CRDs: [`kubernetes/ray/ray-cluster.yaml`](file:///kubernetes/ray/ray-cluster.yaml) and [`kubernetes/jobs/ray-job.yaml`](file:///kubernetes/jobs/ray-job.yaml).
+  - Validator: [`scripts/validate_k8s_manifests.sh`](file:///scripts/validate_k8s_manifests.sh).
 - **Validation Exit Condition:** Manifest syntax check passes; `/dev/shm` 4Gi memory mount and `entity_resolver_slot: 1` constraint verified.
 
 ### Phase 9: Apache Iceberg Lakehouse Integration
 - **Objective:** Implement real transactional Iceberg catalog integration using PyIceberg (supporting AWS Glue in production and SQLite for local development) to maintain `corporate_registry` with ACID upserts.
 - **Dependencies:** Phase 5, Phase 6.
 - **Deliverables:**
-  - Catalog abstraction: [`application/src/catalog_factory.py`](file:///ray-ai-platform/application/src/catalog_factory.py).
-  - Transactional sink: [`application/src/iceberg_sink.py`](file:///ray-ai-platform/application/src/iceberg_sink.py).
-  - Table inspection utility: [`scripts/verify_iceberg_table.py`](file:///ray-ai-platform/scripts/verify_iceberg_table.py).
-  - Integration test: [`application/tests/test_iceberg_sink.py`](file:///ray-ai-platform/application/tests/test_iceberg_sink.py).
+  - Catalog abstraction: [`application/src/catalog_factory.py`](file:///application/src/catalog_factory.py).
+  - Transactional sink: [`application/src/iceberg_sink.py`](file:///application/src/iceberg_sink.py).
+  - Table inspection utility: [`scripts/verify_iceberg_table.py`](file:///scripts/verify_iceberg_table.py).
+  - Integration test: [`application/tests/test_iceberg_sink.py`](file:///application/tests/test_iceberg_sink.py).
 - **Validation Exit Condition:** PyIceberg commits 1,557 canonical records; Avro metadata and Parquet data files committed with active snapshot ID verified.
 
 ### Phase 10: Full-Stack Observability
 - **Objective:** Configure Prometheus `PodMonitor` for Ray metrics (:8080), secure Ray Dashboard exposure (ClusterIP only), centralized logging via Fluent Bit to CloudWatch Logs, and Grafana dashboard JSON.
 - **Dependencies:** Phase 8.
 - **Deliverables:**
-  - Prometheus metrics: [`kubernetes/observability/ray-podmonitor.yaml`](file:///ray-ai-platform/kubernetes/observability/ray-podmonitor.yaml).
-  - Fluent Bit logging: [`kubernetes/observability/fluent-bit-config.yaml`](file:///ray-ai-platform/kubernetes/observability/fluent-bit-config.yaml).
-  - Grafana dashboard: [`kubernetes/observability/grafana-dashboards/ray-platform.json`](file:///ray-ai-platform/kubernetes/observability/grafana-dashboards/ray-platform.json).
-  - Ingress OAuth2: [`kubernetes/observability/ingress-auth.yaml`](file:///ray-ai-platform/kubernetes/observability/ingress-auth.yaml).
-  - Health check script: [`scripts/check_ray_health.sh`](file:///ray-ai-platform/scripts/check_ray_health.sh).
+  - Prometheus metrics: [`kubernetes/observability/ray-podmonitor.yaml`](file:///kubernetes/observability/ray-podmonitor.yaml).
+  - Fluent Bit logging: [`kubernetes/observability/fluent-bit-config.yaml`](file:///kubernetes/observability/fluent-bit-config.yaml).
+  - Grafana dashboard: [`kubernetes/observability/grafana-dashboards/ray-platform.json`](file:///kubernetes/observability/grafana-dashboards/ray-platform.json).
+  - Ingress OAuth2: [`kubernetes/observability/ingress-auth.yaml`](file:///kubernetes/observability/ingress-auth.yaml).
+  - Health check script: [`scripts/check_ray_health.sh`](file:///scripts/check_ray_health.sh).
 - **Validation Exit Condition:** Manifests pass syntax validation; Prometheus metric scrape endpoints and CloudWatch log groups verified.
 
 ### Phase 11: CI/CD Pipelines
@@ -177,15 +177,15 @@ flowchart TD
 - **Deliverables:**
   - PR workflow: [`.github/workflows/pr-validation.yml`](file:///.github/workflows/pr-validation.yml).
   - Deploy workflow: [`.github/workflows/deploy.yml`](file:///.github/workflows/deploy.yml).
-  - OIDC Terraform: [`terraform/platform/github_oidc.tf`](file:///ray-ai-platform/terraform/platform/github_oidc.tf).
+  - OIDC Terraform: [`terraform/platform/github_oidc.tf`](file:///terraform/platform/github_oidc.tf).
 - **Validation Exit Condition:** Workflows validate syntactically; OIDC trust policy restricts access to repository branch `main`.
 
 ### Phase 12: Integrated Local Validation
 - **Objective:** Execute master end-to-end local test suite, validate all Terraform modules and Kubernetes manifests, simulate pipeline execution, verify Iceberg writes, and evaluate trained model artifacts.
 - **Dependencies:** Phases 1–11.
 - **Deliverables:**
-  - Master test harness: [`scripts/run_local_e2e.sh`](file:///ray-ai-platform/scripts/run_local_e2e.sh).
-  - Updated [`ray-ai-platform/REQUIREMENTS_TRACEABILITY.md`](file:///ray-ai-platform/REQUIREMENTS_TRACEABILITY.md) with **PASS** status and concrete evidence across all 26 requirements.
+  - Master test harness: [`scripts/run_local_e2e.sh`](file:///scripts/run_local_e2e.sh).
+  - Updated [`docs/requirements.md`](file:///REQUIREMENTS_TRACEABILITY.md) with **PASS** status and concrete evidence across all 26 requirements.
 - **Validation Exit Condition:** All 7 validation gates pass with exit code 0; 10/10 pytest tests pass; model achieves $R^2 = 0.8725$.
 
 ### Phase 13: Final Delivery & Architecture Review
@@ -193,9 +193,9 @@ flowchart TD
 - **Dependencies:** Phase 12.
 - **Deliverables:**
   - Master documentation: [`README.md`](file:///README.md).
-  - Unified Architecture Blueprint: [`ray-ai-platform/docs/architecture.md`](file:///ray-ai-platform/docs/architecture.md).
-  - Implementation Guide: [`ray-ai-platform/docs/implementation.md`](file:///ray-ai-platform/docs/implementation.md) (this document).
-  - Operational Guides: [`docs/deployment.md`](file:///ray-ai-platform/docs/deployment.md), [`docs/security.md`](file:///ray-ai-platform/docs/security.md), [`docs/troubleshooting.md`](file:///ray-ai-platform/docs/troubleshooting.md), [`docs/cost-analysis.md`](file:///ray-ai-platform/docs/cost-analysis.md), [`docs/serverless-alternative.md`](file:///ray-ai-platform/docs/serverless-alternative.md), [`docs/architecture-review.md`](file:///ray-ai-platform/docs/architecture-review.md).
+  - Unified Architecture Blueprint: [`docs/architecture.md`](file:///docs/architecture.md).
+  - Implementation Guide: [`docs/implementation.md`](file:///docs/implementation.md) (this document).
+  - Operational Guides: [`docs/deployment.md`](file:///docs/deployment.md), [`docs/security.md`](file:///docs/security.md), [`docs/troubleshooting.md`](file:///docs/troubleshooting.md), [`docs/cost-analysis.md`](file:///docs/cost-analysis.md), [`docs/serverless-alternative.md`](file:///docs/serverless-alternative.md), [`docs/architecture-review.md`](file:///docs/architecture-review.md).
 - **Validation Exit Condition:** Cross-documentation coherence check passed; single source of truth established across all topics.
 
 ---
@@ -277,7 +277,7 @@ When records from multiple sources resolve to the same canonical entity:
 10. **Step 10 — Build & Push Container Image:** Build and tag `ray-data-pipeline:latest` using `scripts/build_image.sh` and push to ECR.
 11. **Step 11 — Submit Distributed RayJob:** Submit `kubernetes/jobs/ray-job.yaml` and stream logs until completion.
 12. **Step 12 — Verify Outputs & Table:** Inspect committed Iceberg snapshots and model metrics using `scripts/verify_iceberg_table.py`.
-13. **Step 13 — Review Costs & Teardown:** Follow the reverse teardown procedure in [`ray-ai-platform/docs/deployment.md`](file:///ray-ai-platform/docs/deployment.md) to cleanly destroy billable resources.
+13. **Step 13 — Review Costs & Teardown:** Follow the reverse teardown procedure in [`docs/deployment.md`](file:///docs/deployment.md) to cleanly destroy billable resources.
 
 ---
 

@@ -7,7 +7,7 @@
 - **Compute Infrastructure:** Amazon EKS (`v1.31`) + On-Demand Head Pool + Multi-AZ Spot Worker Pool
 - **Orchestration & Operator:** KubeRay (`v1.2.2`) + Ray (`2.40.0`)
 - **Lakehouse Storage:** Apache Iceberg (v2) on Amazon S3 + AWS Glue Data Catalog
-- **Related Guides:** [`ray-ai-platform/docs/architecture.md`](file:///ray-ai-platform/docs/architecture.md) | [`ray-ai-platform/docs/implementation.md`](file:///ray-ai-platform/docs/implementation.md) | [`ray-ai-platform/docs/security.md`](file:///ray-ai-platform/docs/security.md) | [`ray-ai-platform/docs/troubleshooting.md`](file:///ray-ai-platform/docs/troubleshooting.md)
+- **Related Guides:** [`docs/architecture.md`](file:///docs/architecture.md) | [`docs/implementation.md`](file:///docs/implementation.md) | [`docs/security.md`](file:///docs/security.md) | [`docs/troubleshooting.md`](file:///docs/troubleshooting.md)
 
 ---
 
@@ -79,7 +79,7 @@ export ENVIRONMENT="test"
 The infrastructure is factored into $5$ independent Terraform state layers to ensure blast radius containment and zero inter-module circular dependencies.
 
 ```
-ray-ai-platform/terraform/
+terraform/
 ├── bootstrap/     # S3 remote state backend + DynamoDB lock table
 ├── network/       # VPC, subnets, NAT Gateway, S3 Gateway Endpoint
 ├── eks/           # Managed EKS v1.31, node pools, OIDC provider
@@ -97,7 +97,7 @@ ray-ai-platform/terraform/
 Creates the encrypted remote S3 state storage bucket and DynamoDB locking table used by all subsequent layers.
 
 ```bash
-cd ray-ai-platform/terraform/bootstrap
+cd terraform/bootstrap
 
 # 1. Initialize with local state backend
 terraform init
@@ -239,8 +239,6 @@ terraform apply platform.tfplan
 Build the hardened, non-root Ray 2.40.0 application image and push it to the provisioned Amazon ECR repository:
 
 ```bash
-cd ray-ai-platform
-
 # 1. Authenticate Docker with Amazon ECR
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_URI="${ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/ray-platform-pipeline"
@@ -266,8 +264,6 @@ With cloud infrastructure ready, deploy the Kubernetes manifests in sequence.
 ### Step 1: Namespaces, RBAC, Secrets & ServiceAccount
 
 ```bash
-cd ray-ai-platform
-
 # 1. Create dedicated namespaces (ray-system and ray-workloads)
 kubectl apply -f kubernetes/namespaces/namespaces.yaml
 
@@ -385,7 +381,7 @@ kubectl port-forward svc/ray-cluster-head-svc 8265:8265 -n ray-workloads
 Access the dashboard in your browser at: **`http://localhost:8265`**.
 
 > [!CAUTION]
-> Never expose the Ray Dashboard via a public LoadBalancer without authentication. Anyone with dashboard access can execute arbitrary code on cluster worker nodes. For production external access, deploy [`kubernetes/observability/ingress-auth.yaml`](file:///ray-ai-platform/kubernetes/observability/ingress-auth.yaml) with AWS Cognito OIDC.
+> Never expose the Ray Dashboard via a public LoadBalancer without authentication. Anyone with dashboard access can execute arbitrary code on cluster worker nodes. For production external access, deploy [`kubernetes/observability/ingress-auth.yaml`](file:///kubernetes/observability/ingress-auth.yaml) with AWS Cognito OIDC.
 
 ### Prometheus Metrics Scraping (`:8080`)
 
@@ -408,7 +404,7 @@ Logs stream automatically to CloudWatch Log Group: `/aws/eks/ray-platform-test-e
 
 ## 7. Unified Automation via Root Makefile
 
-The entire 16-phase lifecycle is automated through the master [`Makefile`](file:///Users/jashkv/Desktop/assignment-1/Makefile).
+The entire 16-phase lifecycle is automated through the master [`Makefile`](file:///Makefile).
 
 | Target | Description |
 | :--- | :--- |
@@ -435,8 +431,6 @@ The entire 16-phase lifecycle is automated through the master [`Makefile`](file:
 Validate the end-to-end system outputs programmatically:
 
 ```bash
-cd ray-ai-platform
-
 # 1. Run automated cluster health check
 ./scripts/check_ray_health.sh ray-cluster ray-workloads
 
@@ -467,8 +461,6 @@ flowchart LR
 ### Teardown Execution Commands
 
 ```bash
-cd ray-ai-platform
-
 # ------------------------------------------------------------------------------
 # Phase 1: Terminate Kubernetes Workloads
 # ------------------------------------------------------------------------------

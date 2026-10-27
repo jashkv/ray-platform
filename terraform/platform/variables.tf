@@ -19,7 +19,7 @@ variable "project_name" {
 variable "github_repository" {
   description = "GitHub repository (owner/repo) permitted to assume deployment role"
   type        = string
-  default     = "org/ray-ai-platform"
+  default     = "jashkv/ray-platform"
 }
 
 variable "eks_cluster_arn" {

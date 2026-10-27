@@ -39,7 +39,7 @@ if [ "$S1_COUNT" -lt 1001 ] || [ "$S2_COUNT" -lt 1001 ]; then
 fi
 
 echo "=== [5/7] Running Pytest Test Suite ==="
-.venv/bin/pytest application/tests/ -v
+.venv/bin/python3 -m pytest application/tests/ -v
 
 echo "=== [6/7] Running End-to-End Ray AI Pipeline ==="
 WAREHOUSE_DIR="/tmp/e2e_iceberg_warehouse"

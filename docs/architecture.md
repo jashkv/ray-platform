@@ -42,7 +42,7 @@ The platform delivers a resilient, zero-trust distributed AI and data engineerin
 ## 2. System Architecture & Component Interaction
 
 > [!TIP]
-> **Complete Visual Architecture Suite:** For dedicated, standalone Mermaid diagrams covering Zero-Trust networking, compute tiering, pipeline data flow, autoscaling lifecycles, and worker node topologies, see the [docs/mermaid/ Directory](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/docs/mermaid/README.md).
+> **Complete Visual Architecture Suite:** For dedicated, standalone Mermaid diagrams covering Zero-Trust networking, compute tiering, pipeline data flow, autoscaling lifecycles, and worker node topologies, see the [docs/mermaid/ Directory](file:///docs/mermaid/README.md).
 
 ### 2.1 High-Level Architecture Diagram
 
@@ -211,7 +211,7 @@ To achieve true scale-to-zero compute efficiency while supporting bursty batch d
    - Executes `consolidationPolicy: WhenEmptyOrUnderutilized` to terminate idle EC2 instances 60 seconds after Ray worker pods terminate.
    - Ingests 2-minute Spot interruption notices and rebalance recommendations via EventBridge and SQS to gracefully drain nodes before preemption.
 
-For the complete technical specification, failure scenario matrix, and operational commands, consult [ray-ai-platform/docs/compute-karpenter.md](file:///ray-ai-platform/docs/compute-karpenter.md).
+For the complete technical specification, failure scenario matrix, and operational commands, consult [docs/compute-karpenter.md](file:///docs/compute-karpenter.md).
 
 ---
 
@@ -594,7 +594,7 @@ The Ray Dashboard is bound to `ClusterIP` on port `8265` and is never exposed pu
   ```bash
   kubectl port-forward svc/corporate-data-cluster-head-svc 8265:8265 -n ray-workloads
   ```
-- **Authenticated Ingress:** Configured with an AWS Application Load Balancer and AWS Cognito OAuth2 proxy ([`kubernetes/observability/ingress-auth.yaml`](file:///ray-ai-platform/kubernetes/observability/ingress-auth.yaml)).
+- **Authenticated Ingress:** Configured with an AWS Application Load Balancer and AWS Cognito OAuth2 proxy ([`kubernetes/observability/ingress-auth.yaml`](file:///kubernetes/observability/ingress-auth.yaml)).
 
 ---
 
@@ -654,7 +654,7 @@ Two GitHub Actions workflows automate pipeline validation and deployment using A
 - At $< 1$ run per day, Serverless is ~40% cheaper due to zero idle compute baseline costs.
 - At $\ge 2$ daily pipeline runs, **EKS + KubeRay with Spot workers is 52% - 68% cheaper**, while offering $10\times$ faster iteration latency.
 
-For full mathematical cost models, see [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md).
+For full mathematical cost models, see [docs/serverless-alternative.md](file:///docs/serverless-alternative.md).
 
 ---
 

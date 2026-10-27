@@ -508,7 +508,7 @@ verify-data: generate-data ## Verify generated CSV dataset row counts (>= 1,000 
 	if [ "$$S1_COUNT" -lt 1001 ] || [ "$$S2_COUNT" -lt 1001 ]; then \
 		$(LOG_ERR) "Dataset row count requirement failed (< 1,000 records)"; exit 1; \
 	fi
-	@$(LOG_OK) "Dataset record counts meet assignment specifications."
+	@$(LOG_OK) "Dataset record counts meet production data platform specifications."
 
 upload-data-s3: verify-data ## Upload datasets to s3://$(DATA_BUCKET)/incoming/
 	@$(LOG_INFO) "Uploading CSV files to S3 bucket $(DATA_BUCKET)..."

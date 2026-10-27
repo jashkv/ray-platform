@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - master
     paths:
       - "application/**"
       - "terraform/**"
@@ -34,19 +35,16 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          cd ray-ai-platform
           uv pip install --system -e ".[dev]" --only-binary cryptography
 
       - name: Verify Dataset Generation
         run: |
-          cd ray-ai-platform
           python3 application/src/generate_datasets.py
           test $(wc -l < application/data/supply_chain_data_s1.csv) -ge 1001
           test $(wc -l < application/data/financial_data_s2.csv) -ge 1001
 
       - name: Run Pytest Test Suite
         run: |
-          cd ray-ai-platform
           pytest application/tests/ -v --junitxml=junit-report.xml
 
   terraform-check:
@@ -63,30 +61,29 @@ jobs:
 
       - name: Terraform Format Check
         run: |
-          cd ray-ai-platform
           terraform fmt -check -recursive terraform/
 
       - name: Validate Bootstrap Layer
         run: |
-          cd ray-ai-platform/terraform/bootstrap
+          cd terraform/bootstrap
           terraform init -backend=false
           terraform validate
 
       - name: Validate Network Layer
         run: |
-          cd ray-ai-platform/terraform/network
+          cd terraform/network
           terraform init -backend=false
           terraform validate
 
       - name: Validate EKS Layer
         run: |
-          cd ray-ai-platform/terraform/eks
+          cd terraform/eks
           terraform init -backend=false
           terraform validate
 
       - name: Validate Data Layer
         run: |
-          cd ray-ai-platform/terraform/data
+          cd terraform/data
           terraform init -backend=false
           terraform validate
 
@@ -107,7 +104,6 @@ jobs:
 
       - name: Run Manifest Validation Script
         run: |
-          cd ray-ai-platform
           python3 -c "
           import yaml, glob, sys
           files = glob.glob('kubernetes/**/*.yaml', recursive=True) + glob.glob('helm/**/*.yaml', recursive=True)

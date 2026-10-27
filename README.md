@@ -13,7 +13,7 @@ An enterprise-grade, production-ready distributed data engineering and machine l
 
 ## 1. Executive Summary
 
-This repository delivers the complete implementation of **The Distributed AI Foundation** DevOps and Platform Engineering take-home assignment. It implements a resilient, multi-tenant distributed compute engine capable of:
+This repository delivers the complete implementation of **The Distributed AI Foundation**, an enterprise distributed compute and lakehouse platform on AWS. It implements a resilient, multi-tenant distributed compute engine capable of:
 1. Ingesting distributed multi-source corporate datasets with validation and deduplication.
 2. Performing deterministic entity resolution using an isolated stateful Ray Actor with multi-attribute corroboration.
 3. Persisting canonical records to a real transactional **Apache Iceberg** lakehouse table backed by AWS Glue Data Catalog and Amazon S3.
@@ -176,7 +176,7 @@ ray-platform/
         ├── cost-analysis.md           # AWS cost model, Spot savings, and budget justification
         ├── serverless-alternative.md  # Serverless architecture evaluation & cost comparison
         ├── prerequisites.md           # Detailed installation and dependency setup guide
-        ├── requirment.md              # Original prompt requirements
+        ├── requirements.md            # System requirements, specifications & traceability
         └── install.sh                 # Environment setup script
 ```
 
@@ -204,7 +204,6 @@ make e2e-local     # Execute master local end-to-end verification harness (7 gat
 
 Alternatively, run the script directly:
 ```bash
-cd ray-ai-platform
 ./scripts/run_local_e2e.sh
 ```
 
@@ -391,7 +390,6 @@ The platform exposes deep instrumentation across infrastructure, operator, and d
     Configured with an AWS Application Load Balancer and AWS Cognito OAuth2 proxy. The dashboard is never exposed publicly without authentication.
 - **Automated Health Check Script:**
   ```bash
-  cd ray-ai-platform
   ./scripts/check_ray_health.sh corporate-data-cluster ray-workloads
   ```
 
@@ -401,7 +399,7 @@ For operational playbooks and troubleshooting procedures, see [docs/troubleshoot
 
 ## 10. Requirements Traceability Matrix
 
-Every requirement from the assignment specification has been implemented and validated against concrete evidence:
+Every requirement from the platform engineering specification has been implemented and validated against concrete evidence:
 
 | Requirement Category | Requirements Covered | Status | Verification Evidence |
 | :--- | :---: | :---: | :--- |
@@ -432,12 +430,6 @@ The itemized verification proofs and concrete test evidence above validate 100% 
 | [docs/cost-analysis.md](file:///docs/cost-analysis.md) | Component-by-component AWS cost analysis and spot savings calculations. |
 | [docs/serverless-alternative.md](file:///docs/serverless-alternative.md) | AWS Step Functions + EMR Serverless alternative comparison. |
 | [docs/prerequisites.md](file:///docs/prerequisites.md) | Detailed installation and dependency setup guide. |
-| [docs/requirment.md](file:///docs/requirment.md) | Original prompt and assignment specification. |
+| [docs/requirements.md](file:///docs/requirements.md) | System requirements, functional specifications, and traceability. |
 
----
 
-## 12. License & Author
-
-- **Project:** The Distributed AI Foundation
-- **Role:** Platform / DevOps Engineer Take-Home Implementation
-- **License:** Apache License 2.0

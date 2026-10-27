@@ -5,7 +5,7 @@
 - **Runtime Compute:** Amazon EKS (`v1.31`)
 - **Node Provisioner:** Karpenter (`v1.0.8` / `karpenter.sh/v1`, `karpenter.k8s.aws/v1`)
 - **Workload Orchestrator:** KubeRay (`v1.2.2`) + Ray (`2.40.0`)
-- **Related Documents:** [`ray-ai-platform/docs/architecture.md`](file:///ray-ai-platform/docs/architecture.md) | [`ray-ai-platform/docs/deployment.md`](file:///ray-ai-platform/docs/deployment.md) | [`ray-ai-platform/docs/cost-analysis.md`](file:///ray-ai-platform/docs/cost-analysis.md) | [`ray-ai-platform/docs/troubleshooting.md`](file:///ray-ai-platform/docs/troubleshooting.md)
+- **Related Documents:** [`docs/architecture.md`](file:///docs/architecture.md) | [`docs/deployment.md`](file:///docs/deployment.md) | [`docs/cost-analysis.md`](file:///docs/cost-analysis.md) | [`docs/troubleshooting.md`](file:///docs/troubleshooting.md)
 
 ---
 
@@ -88,7 +88,7 @@ To ensure high availability and prevent cascade failures, the compute layer is p
 
 ## 3. Karpenter AWS Integration & Terraform Architecture
 
-Karpenter is provisioned modularly via [`terraform/modules/karpenter`](file:///ray-ai-platform/terraform/modules/karpenter) and integrated into the EKS layer ([`terraform/eks/main.tf`](file:///ray-ai-platform/terraform/eks/main.tf)).
+Karpenter is provisioned modularly via [`terraform/modules/karpenter`](file:///terraform/modules/karpenter) and integrated into the EKS layer ([`terraform/eks/main.tf`](file:///terraform/eks/main.tf)).
 
 ### 3.1 Infrastructure Components
 
@@ -215,12 +215,12 @@ kubectl exec -it -n ray-workloads \
 
 ## 8. Summary of Completed Deliverables
 
-1. **Terraform Karpenter Module:** [`terraform/modules/karpenter`](file:///ray-ai-platform/terraform/modules/karpenter) (IAM IRSA, Node Role, SQS Interruption Queue, 4 EventBridge rules, EKS Access Entry).
-2. **EKS Layer Integration:** [`terraform/eks/main.tf`](file:///ray-ai-platform/terraform/eks/main.tf) and [`terraform/eks/outputs.tf`](file:///ray-ai-platform/terraform/eks/outputs.tf).
-3. **Karpenter Helm Values:** [`helm/karpenter/values.yaml`](file:///ray-ai-platform/helm/karpenter/values.yaml) (Pinned v1.0.8, On-Demand system placement).
+1. **Terraform Karpenter Module:** [`terraform/modules/karpenter`](file:///terraform/modules/karpenter) (IAM IRSA, Node Role, SQS Interruption Queue, 4 EventBridge rules, EKS Access Entry).
+2. **EKS Layer Integration:** [`terraform/eks/main.tf`](file:///terraform/eks/main.tf) and [`terraform/eks/outputs.tf`](file:///terraform/eks/outputs.tf).
+3. **Karpenter Helm Values:** [`helm/karpenter/values.yaml`](file:///helm/karpenter/values.yaml) (Pinned v1.0.8, On-Demand system placement).
 4. **Kubernetes CRDs:**
-   - [`kubernetes/karpenter/ec2nodeclass.yaml`](file:///ray-ai-platform/kubernetes/karpenter/ec2nodeclass.yaml) (AL2023, IMDSv2, gp3 50Gi, tag discovery).
-   - [`kubernetes/karpenter/nodepool-worker.yaml`](file:///ray-ai-platform/kubernetes/karpenter/nodepool-worker.yaml) (Spot primary, 4 instance families, 20% disruption budget).
-   - [`kubernetes/karpenter/nodepool-ondemand.yaml`](file:///ray-ai-platform/kubernetes/karpenter/nodepool-ondemand.yaml) (On-Demand fallback pool).
-5. **RayCluster Autoscaling:** [`kubernetes/ray/ray-cluster.yaml`](file:///ray-ai-platform/kubernetes/ray/ray-cluster.yaml) (`enableInTreeAutoscaling: true`, `minReplicas: 0`, `maxReplicas: 8`).
-6. **Automation & Validation:** [`Makefile`](file:///Users/jashkv/Desktop/assignment-1/Makefile) targets (`helm-install-karpenter`, `k8s-apply-karpenter`, `karpenter-check`, `karpenter-logs`) and [`scripts/validate_k8s_manifests.sh`](file:///ray-ai-platform/scripts/validate_k8s_manifests.sh).
+   - [`kubernetes/karpenter/ec2nodeclass.yaml`](file:///kubernetes/karpenter/ec2nodeclass.yaml) (AL2023, IMDSv2, gp3 50Gi, tag discovery).
+   - [`kubernetes/karpenter/nodepool-worker.yaml`](file:///kubernetes/karpenter/nodepool-worker.yaml) (Spot primary, 4 instance families, 20% disruption budget).
+   - [`kubernetes/karpenter/nodepool-ondemand.yaml`](file:///kubernetes/karpenter/nodepool-ondemand.yaml) (On-Demand fallback pool).
+5. **RayCluster Autoscaling:** [`kubernetes/ray/ray-cluster.yaml`](file:///kubernetes/ray/ray-cluster.yaml) (`enableInTreeAutoscaling: true`, `minReplicas: 0`, `maxReplicas: 8`).
+6. **Automation & Validation:** [`Makefile`](file:///Makefile) targets (`helm-install-karpenter`, `k8s-apply-karpenter`, `karpenter-check`, `karpenter-logs`) and [`scripts/validate_k8s_manifests.sh`](file:///scripts/validate_k8s_manifests.sh).

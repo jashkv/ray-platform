@@ -37,7 +37,7 @@ LOCAL_WAREHOUSE_DIR  ?= /tmp/e2e_iceberg_warehouse
 
 # Project Paths
 ROOT_DIR             := $(shell pwd)
-RAY_DIR              := $(ROOT_DIR)/ray-ai-platform
+RAY_DIR              := $(ROOT_DIR)
 TF_DIR               := $(RAY_DIR)/terraform
 K8S_DIR              := $(RAY_DIR)/kubernetes
 APP_DIR              := $(RAY_DIR)/application
@@ -47,7 +47,7 @@ VENV_DIR             := $(RAY_DIR)/.venv
 
 # Python & Tool Binaries
 PYTHON               := $(shell if [ -f $(VENV_DIR)/bin/python ]; then echo $(VENV_DIR)/bin/python; else echo python3; fi)
-PYTEST               := $(shell if [ -f $(VENV_DIR)/bin/pytest ]; then echo $(VENV_DIR)/bin/pytest; else echo pytest; fi)
+PYTEST               := $(PYTHON) -m pytest
 TERRAFORM            ?= terraform
 KUBECTL              ?= kubectl
 HELM                 ?= helm
@@ -132,11 +132,11 @@ verify-tools: ## Verify local CLI dependencies and print status audit
 		if command -v $$tool >/dev/null 2>&1; then \
 			printf "  $(GREEN)[OK]$(RESET) %-12s installed: %s\n" "$$tool" "$$(command -v $$tool)"; \
 		else \
-			printf "  $(YELLOW)[OPTIONAL]$(RESET) %-12s not installed locally (Required for cluster/container operations; see ray-ai-platform/docs/prerequisites.md)\n" "$$tool"; \
+			printf "  $(YELLOW)[OPTIONAL]$(RESET) %-12s not installed locally (Required for cluster/container operations; see docs/prerequisites.md)\n" "$$tool"; \
 		fi; \
 	done; \
 	if [ $$MISSING -ne 0 ]; then \
-		$(LOG_ERR) "One or more core required tools are missing. Check ray-ai-platform/docs/prerequisites.md."; exit 1; \
+		$(LOG_ERR) "One or more core required tools are missing. Check docs/prerequisites.md."; exit 1; \
 	fi
 	@$(LOG_OK) "Core baseline tool verification passed."
 

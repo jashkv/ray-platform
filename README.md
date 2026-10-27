@@ -1,10 +1,10 @@
 # Ray AI Platform on Kubernetes — The Distributed AI Foundation
 
-[![CI Validation](https://github.com/org/repo/actions/workflows/pr-validation.yml/badge.svg)](file:///ray-ai-platform/.github/workflows/pr-validation.yml)
-[![EKS Version](https://img.shields.io/badge/Amazon%20EKS-1.31-orange.svg)](file:///ray-ai-platform/terraform/eks)
-[![Ray Version](https://img.shields.io/badge/Ray-2.40.0-blue.svg)](file:///ray-ai-platform/kubernetes/ray/ray-cluster.yaml)
-[![Apache Iceberg](https://img.shields.io/badge/Apache%20Iceberg-0.7.1-cyan.svg)](file:///ray-ai-platform/application/src/iceberg_sink.py)
-[![Terraform](https://img.shields.io/badge/Terraform-1.15+-purple.svg)](file:///ray-ai-platform/terraform)
+[![CI Validation](https://github.com/org/repo/actions/workflows/pr-validation.yml/badge.svg)](file:///.github/workflows/pr-validation.yml)
+[![EKS Version](https://img.shields.io/badge/Amazon%20EKS-1.31-orange.svg)](file:///terraform/eks)
+[![Ray Version](https://img.shields.io/badge/Ray-2.40.0-blue.svg)](file:///kubernetes/ray/ray-cluster.yaml)
+[![Apache Iceberg](https://img.shields.io/badge/Apache%20Iceberg-0.7.1-cyan.svg)](file:///application/src/iceberg_sink.py)
+[![Terraform](https://img.shields.io/badge/Terraform-1.15+-purple.svg)](file:///terraform)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
 An enterprise-grade, production-ready distributed data engineering and machine learning platform deployed on AWS EKS using KubeRay, Apache Iceberg, Ray Data, and Ray Train.
@@ -83,7 +83,7 @@ flowchart TD
     RAYHEAD --> ALB
 ```
 
-For complete technical specifications, see [ray-ai-platform/docs/architecture.md](file:///ray-ai-platform/docs/architecture.md).
+For complete technical specifications, see [docs/architecture.md](file:///docs/architecture.md).
 
 ---
 
@@ -91,31 +91,32 @@ For complete technical specifications, see [ray-ai-platform/docs/architecture.md
 
 | Capability | Architecture Decision | Implementation Reference |
 | :--- | :--- | :--- |
-| **Modular IaC** | 5 decoupled Terraform layers (`bootstrap`, `network`, `eks`, `data`, `platform`) with state locking. | [`ray-ai-platform/terraform/`](file:///ray-ai-platform/terraform) |
-| **Spot Resiliency** | Spot instances across 4 diverse instance families (`m6i`, `m5`, `m5a`, `m6a`) with On-Demand head isolation. | [`ray-ai-platform/terraform/eks/main.tf`](file:///ray-ai-platform/terraform/eks/main.tf#L70-L120) |
-| **Karpenter Autoscaling** | Coordinated two-level autoscaling: KubeRay pod scaling + Karpenter just-in-time EC2 Spot provisioning (<45s) and consolidation. | [`ray-ai-platform/docs/compute-karpenter.md`](file:///ray-ai-platform/docs/compute-karpenter.md) |
-| **Ray Shared Memory** | Dedicated 4Gi `Memory` emptyDir mounted to `/dev/shm` + Arrow object store explicitly capped at 3.6 GiB. | [`ray-ai-platform/kubernetes/ray/ray-cluster.yaml`](file:///ray-ai-platform/kubernetes/ray/ray-cluster.yaml#L95-L115) |
-| **Actor Scheduling** | Deterministic singleton placement using custom resource `entity_resolver_slot: 1` avoiding split-brain. | [`ray-ai-platform/kubernetes/ray/ray-cluster.yaml`](file:///ray-ai-platform/kubernetes/ray/ray-cluster.yaml#L106) |
-| **Apache Iceberg** | Transactional v2 Lakehouse table with ACID snapshots, schema evolution, and Glue Catalog integration. | [`ray-ai-platform/application/src/iceberg_sink.py`](file:///ray-ai-platform/application/src/iceberg_sink.py) |
-| **Entity Resolution** | Multi-tier engine: Tax ID exact match + Levenshtein name match corroborated by country and founded year. | [`ray-ai-platform/application/src/entity_resolver.py`](file:///ray-ai-platform/application/src/entity_resolver.py) |
-| **ML Training** | Distributed Gradient Boosting regressor predicting revenue ($R^2 = 0.8725$) using Ray Train. | [`ray-ai-platform/application/src/train_model.py`](file:///ray-ai-platform/application/src/train_model.py) |
-| **Zero-Trust IAM** | AWS IRSA (IAM Roles for Service Accounts) with least-privilege policies. Zero static AWS credentials. | [`ray-ai-platform/terraform/modules/irsa/main.tf`](file:///ray-ai-platform/terraform/modules/irsa/main.tf) |
-| **Zero NAT Cost** | S3 VPC Gateway Endpoint ($0/GB transfer) bypassing NAT Gateway processing fees. | [`ray-ai-platform/terraform/modules/vpc/main.tf`](file:///ray-ai-platform/terraform/modules/vpc/main.tf#L75-L85) |
-| **Dashboard Security** | Ray Dashboard bound to ClusterIP with optional Ingress requiring AWS Cognito / OAuth2 authentication. | [`ray-ai-platform/kubernetes/observability/ingress-auth.yaml`](file:///ray-ai-platform/kubernetes/observability/ingress-auth.yaml) |
+| **Modular IaC** | 5 decoupled Terraform layers (`bootstrap`, `network`, `eks`, `data`, `platform`) with state locking. | [`terraform/`](file:///terraform) |
+| **Spot Resiliency** | Spot instances across 4 diverse instance families (`m6i`, `m5`, `m5a`, `m6a`) with On-Demand head isolation. | [`terraform/eks/main.tf`](file:///terraform/eks/main.tf#L70-L120) |
+| **Karpenter Autoscaling** | Coordinated two-level autoscaling: KubeRay pod scaling + Karpenter just-in-time EC2 Spot provisioning (<45s) and consolidation. | [`docs/compute-karpenter.md`](file:///docs/compute-karpenter.md) |
+| **Ray Shared Memory** | Dedicated 4Gi `Memory` emptyDir mounted to `/dev/shm` + Arrow object store explicitly capped at 3.6 GiB. | [`kubernetes/ray/ray-cluster.yaml`](file:///kubernetes/ray/ray-cluster.yaml#L95-L115) |
+| **Actor Scheduling** | Deterministic singleton placement using custom resource `entity_resolver_slot: 1` avoiding split-brain. | [`kubernetes/ray/ray-cluster.yaml`](file:///kubernetes/ray/ray-cluster.yaml#L106) |
+| **Apache Iceberg** | Transactional v2 Lakehouse table with ACID snapshots, schema evolution, and Glue Catalog integration. | [`application/src/iceberg_sink.py`](file:///application/src/iceberg_sink.py) |
+| **Entity Resolution** | Multi-tier engine: Tax ID exact match + Levenshtein name match corroborated by country and founded year. | [`application/src/entity_resolver.py`](file:///application/src/entity_resolver.py) |
+| **ML Training** | Distributed Gradient Boosting regressor predicting revenue ($R^2 = 0.8725$) using Ray Train. | [`application/src/train_model.py`](file:///application/src/train_model.py) |
+| **Zero-Trust IAM** | AWS IRSA (IAM Roles for Service Accounts) with least-privilege policies. Zero static AWS credentials. | [`terraform/modules/irsa/main.tf`](file:///terraform/modules/irsa/main.tf) |
+| **Zero NAT Cost** | S3 VPC Gateway Endpoint ($0/GB transfer) bypassing NAT Gateway processing fees. | [`terraform/modules/vpc/main.tf`](file:///terraform/modules/vpc/main.tf#L75-L85) |
+| **Dashboard Security** | Ray Dashboard bound to ClusterIP with optional Ingress requiring AWS Cognito / OAuth2 authentication. | [`kubernetes/observability/ingress-auth.yaml`](file:///kubernetes/observability/ingress-auth.yaml) |
 
 ---
 
 ## 4. Repository Layout
 
 ```
-assignment-1/
+ray-platform/
 ├── Makefile                           # Production automation & orchestration command center
 ├── README.md                          # Master project documentation (this file)
+├── pyproject.toml                     # Pinned Python package dependencies & tool settings
+├── uv.lock                            # Deterministic dependency lockfile
+├── .gitignore                         # Comprehensive Git ignore rules
+├── .dockerignore                      # Docker build ignore rules
 │
-└── ray-ai-platform/                   # PLATFORM IMPLEMENTATION ROOT
-    ├── pyproject.toml                 # Pinned Python package dependencies & tool settings
-    │
-    ├── terraform/                     # Decoupled Infrastructure as Code
+├── terraform/                         # Decoupled Infrastructure as Code
     │   ├── bootstrap/                 # S3 state bucket (SSE-KMS) + DynamoDB lock table
     │   ├── network/                   # Multi-AZ VPC, subnets, NAT Gateway, S3 Gateway Endpoint
     │   ├── eks/                       # EKS v1.31, On-Demand Head pool, Spot Worker pool, KMS
@@ -283,7 +284,7 @@ flowchart LR
 
 1. **Bootstrap State Storage:**
    ```bash
-   cd ray-ai-platform/terraform/bootstrap
+   cd terraform/bootstrap
    terraform init && terraform apply
    ```
 
@@ -327,7 +328,7 @@ flowchart LR
    kubectl get rayjob corporate-revenue-pipeline -n ray-workloads --watch
    ```
 
-For comprehensive deployment instructions, secrets management, and teardown runbooks, consult [ray-ai-platform/docs/deployment.md](file:///ray-ai-platform/docs/deployment.md).
+For comprehensive deployment instructions, secrets management, and teardown runbooks, consult [docs/deployment.md](file:///docs/deployment.md).
 
 ---
 
@@ -344,7 +345,7 @@ Worker compute runs on **Amazon EC2 Spot Instances**, delivering ~70% cost savin
 4. **Object Store & Task Retries:**
    Ray tasks are decorated with `@ray.remote(max_retries=3, retry_exceptions=True)`. Apache Arrow object lineage enables reconstruction of intermediate datasets if a spot node terminates mid-execution.
 
-For full mathematical cost models and spot risk analysis, see [ray-ai-platform/docs/cost-analysis.md](file:///ray-ai-platform/docs/cost-analysis.md).
+For full mathematical cost models and spot risk analysis, see [docs/cost-analysis.md](file:///docs/cost-analysis.md).
 
 ---
 
@@ -366,7 +367,7 @@ As part of the platform architecture study, we evaluated replacing the Kubernete
 - **$< 1$ execution per day:** Serverless is ~40% cheaper due to zero idle compute baseline costs.
 - **$\ge 2$ executions per day:** EKS + KubeRay with Spot workers is **52% - 68% cheaper**, while offering $10\times$ faster iteration speed.
 
-Read the detailed serverless architectural blueprint in [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md).
+Read the detailed serverless architectural blueprint in [docs/serverless-alternative.md](file:///docs/serverless-alternative.md).
 
 ---
 
@@ -394,7 +395,7 @@ The platform exposes deep instrumentation across infrastructure, operator, and d
   ./scripts/check_ray_health.sh corporate-data-cluster ray-workloads
   ```
 
-For operational playbooks and troubleshooting procedures, see [ray-ai-platform/docs/troubleshooting.md](file:///ray-ai-platform/docs/troubleshooting.md).
+For operational playbooks and troubleshooting procedures, see [docs/troubleshooting.md](file:///docs/troubleshooting.md).
 
 ---
 
@@ -420,18 +421,18 @@ The itemized verification proofs and concrete test evidence above validate 100% 
 
 | Document | Description |
 | :--- | :--- |
-| [ray-ai-platform/docs/mermaid/README.md](file:///ray-ai-platform/docs/mermaid/README.md) | Centralized Mermaid visual architecture library (10 comprehensive diagrams & source files). |
-| [ray-ai-platform/docs/architecture.md](file:///ray-ai-platform/docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
-| [ray-ai-platform/docs/compute-karpenter.md](file:///ray-ai-platform/docs/compute-karpenter.md) | Coordinated Karpenter + Ray autoscaling architecture, Spot resilience, and failure runbooks. |
-| [ray-ai-platform/docs/implementation.md](file:///ray-ai-platform/docs/implementation.md) | Complete 14-phase engineering roadmap, deliverables, and validation criteria. |
-| [ray-ai-platform/docs/architecture-review.md](file:///ray-ai-platform/docs/architecture-review.md) | Architectural scorecard against cloud engineering best practices. |
-| [ray-ai-platform/docs/deployment.md](file:///ray-ai-platform/docs/deployment.md) | Step-by-step AWS provisioning, testing, and teardown runbook. |
-| [ray-ai-platform/docs/security.md](file:///ray-ai-platform/docs/security.md) | Zero-trust IAM policies, IRSA, network isolation, and encryption. |
-| [ray-ai-platform/docs/troubleshooting.md](file:///ray-ai-platform/docs/troubleshooting.md) | Triage playbooks for Ray OOM, Spot interruptions, and scheduling failures. |
-| [ray-ai-platform/docs/cost-analysis.md](file:///ray-ai-platform/docs/cost-analysis.md) | Component-by-component AWS cost analysis and spot savings calculations. |
-| [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md) | AWS Step Functions + EMR Serverless alternative comparison. |
-| [ray-ai-platform/docs/prerequisites.md](file:///ray-ai-platform/docs/prerequisites.md) | Detailed installation and dependency setup guide. |
-| [ray-ai-platform/docs/requirment.md](file:///ray-ai-platform/docs/requirment.md) | Original prompt and assignment specification. |
+| [docs/mermaid/README.md](file:///docs/mermaid/README.md) | Centralized Mermaid visual architecture library (10 comprehensive diagrams & source files). |
+| [docs/architecture.md](file:///docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
+| [docs/compute-karpenter.md](file:///docs/compute-karpenter.md) | Coordinated Karpenter + Ray autoscaling architecture, Spot resilience, and failure runbooks. |
+| [docs/implementation.md](file:///docs/implementation.md) | Complete 14-phase engineering roadmap, deliverables, and validation criteria. |
+| [docs/architecture-review.md](file:///docs/architecture-review.md) | Architectural scorecard against cloud engineering best practices. |
+| [docs/deployment.md](file:///docs/deployment.md) | Step-by-step AWS provisioning, testing, and teardown runbook. |
+| [docs/security.md](file:///docs/security.md) | Zero-trust IAM policies, IRSA, network isolation, and encryption. |
+| [docs/troubleshooting.md](file:///docs/troubleshooting.md) | Triage playbooks for Ray OOM, Spot interruptions, and scheduling failures. |
+| [docs/cost-analysis.md](file:///docs/cost-analysis.md) | Component-by-component AWS cost analysis and spot savings calculations. |
+| [docs/serverless-alternative.md](file:///docs/serverless-alternative.md) | AWS Step Functions + EMR Serverless alternative comparison. |
+| [docs/prerequisites.md](file:///docs/prerequisites.md) | Detailed installation and dependency setup guide. |
+| [docs/requirment.md](file:///docs/requirment.md) | Original prompt and assignment specification. |
 
 ---
 

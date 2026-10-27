@@ -36,9 +36,9 @@ The platform architecture on the `serverless` branch delivers an exceptional, cl
 ```
 
 ### 2.1 Operational Excellence
-- Entire serverless infrastructure is versioned in Terraform ([`ray-ai-platform/terraform/serverless/`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/terraform/serverless/)).
+- Entire serverless infrastructure is versioned in Terraform ([`terraform/serverless/`](../terraform/serverless/)).
 - Centralized, structured JSON logging in CloudWatch with predefined 14-day log retention.
-- Automated 4-gate verification harness ([`ray-ai-platform/scripts/run_serverless_local.sh`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/scripts/run_serverless_local.sh)) and Pytest test suite.
+- Automated 4-gate verification harness ([`scripts/run_serverless_local.sh`](../scripts/run_serverless_local.sh)) and Pytest test suite.
 
 ### 2.2 Security
 - Strict least-privilege IAM roles for Lambda execution and Step Functions state machine.

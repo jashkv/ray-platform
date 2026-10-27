@@ -1,11 +1,11 @@
 # AWS Serverless AI & Data Lakehouse Platform — The Serverless Foundation
 
-[![CI Validation](https://img.shields.io/badge/CI%20Validation-Passing-brightgreen.svg)](file:///.github/workflows/pr-validation.yml)
-[![Branch](https://img.shields.io/badge/Branch-serverless-blue.svg)](file:///README.md)
-[![Orchestrator](https://img.shields.io/badge/Orchestrator-AWS%20Step%20Functions-orange.svg)](file:///terraform/serverless/step_functions_pipeline.asl.json)
-[![Compute](https://img.shields.io/badge/Compute-AWS%20Lambda%20(Python%203.12)-yellow.svg)](file:///application/src/serverless/handlers.py)
-[![Apache Iceberg](https://img.shields.io/badge/Apache%20Iceberg-v2%20ACID-cyan.svg)](file:///application/src/iceberg_sink.py)
-[![Terraform](https://img.shields.io/badge/Terraform-1.10+-purple.svg)](file:///terraform/serverless)
+[![CI Validation](https://img.shields.io/badge/CI%20Validation-Passing-brightgreen.svg)](.github/workflows/pr-validation.yml)
+[![Branch](https://img.shields.io/badge/Branch-serverless-blue.svg)](README.md)
+[![Orchestrator](https://img.shields.io/badge/Orchestrator-AWS%20Step%20Functions-orange.svg)](terraform/serverless/step_functions_pipeline.asl.json)
+[![Compute](https://img.shields.io/badge/Compute-AWS%20Lambda%20(Python%203.12)-yellow.svg)](application/src/serverless/handlers.py)
+[![Apache Iceberg](https://img.shields.io/badge/Apache%20Iceberg-v2%20ACID-cyan.svg)](application/src/iceberg_sink.py)
+[![Terraform](https://img.shields.io/badge/Terraform-1.10+-purple.svg)](terraform/serverless)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
 An enterprise-grade, production-ready, event-driven serverless AI data engineering and machine learning platform deployed on AWS using **AWS Step Functions, AWS Lambda, Amazon DynamoDB, AWS Glue Data Catalog, Apache Iceberg, and Amazon S3**.
@@ -132,31 +132,29 @@ flowchart TD
 
 | Capability | Architecture Decision | Implementation Reference |
 | :--- | :--- | :--- |
-| **Serverless Orchestration** | AWS Step Functions State Machine with Distributed Map and exponential backoff retries. | [`terraform/serverless/step_functions_pipeline.asl.json`](file:///terraform/serverless/step_functions_pipeline.asl.json) |
-| **Micro-Function Compute** | 6 modular AWS Lambda functions running in isolated Firecracker microVMs. | [`application/src/serverless/handlers.py`](file:///application/src/serverless/handlers.py) |
-| **$0.00 Idle Waste** | Full scale-to-zero compute. Charges occur strictly per millisecond of function execution. | [`docs/cost-analysis.md`](file:///docs/cost-analysis.md) |
-| **Dynamic Schema Ingestion** | Dynamic column alias discovery resolving variations in header naming, casing, and order. | [`application/src/serverless/handlers.py`](file:///application/src/serverless/handlers.py#L40-L115) |
-| **Entity Resolution Engine** | Deterministic multi-tier engine: Tax ID exact + Levenshtein name match + country/year corroboration. | [`application/src/entity_resolver.py`](file:///application/src/entity_resolver.py) |
-| **Anomaly Quarantining** | Diverts ambiguous candidate matches ($0.65 - 0.87$) into S3 dead-letter quarantine. | [`application/src/serverless/handlers.py`](file:///application/src/serverless/handlers.py#L145-L185) |
-| **Apache Iceberg Lakehouse** | Transactional v2 Snappy Parquet table backed by AWS Glue Data Catalog locks. | [`application/src/iceberg_sink.py`](file:///application/src/iceberg_sink.py) |
-| **ML Revenue Prediction** | Gradient Boosting regressor predicting corporate annual revenue ($R^2 = 0.8725$). | [`application/src/train_model.py`](file:///application/src/train_model.py) |
-| **Atomic Idempotency** | DynamoDB conditional put (`attribute_not_exists(execution_id)`) prevents duplicate runs. | [`application/src/serverless/handlers.py`](file:///application/src/serverless/handlers.py#L25-L65) |
-| **Automated Dead-Lettering** | Amazon SQS DLQ with 14-day retention capturing all unhandled Step Functions errors. | [`terraform/serverless/main.tf`](file:///terraform/serverless/main.tf#L110-L125) |
-| **Zero-Trust IAM** | Least-privilege IAM roles with temporary 1-hour STS credentials and KMS CMK encryption. | [`terraform/serverless/iam.tf`](file:///terraform/serverless/iam.tf) |
+| **Serverless Orchestration** | AWS Step Functions State Machine with Distributed Map and exponential backoff retries. | [`terraform/serverless/step_functions_pipeline.asl.json`](terraform/serverless/step_functions_pipeline.asl.json) |
+| **Micro-Function Compute** | 6 modular AWS Lambda functions running in isolated Firecracker microVMs. | [`application/src/serverless/handlers.py`](application/src/serverless/handlers.py) |
+| **$0.00 Idle Waste** | Full scale-to-zero compute. Charges occur strictly per millisecond of function execution. | [`docs/cost-analysis.md`](docs/cost-analysis.md) |
+| **Dynamic Schema Ingestion** | Dynamic column alias discovery resolving variations in header naming, casing, and order. | [`application/src/serverless/handlers.py`](application/src/serverless/handlers.py#L40-L115) |
+| **Entity Resolution Engine** | Deterministic multi-tier engine: Tax ID exact + Levenshtein name match + country/year corroboration. | [`application/src/entity_resolver.py`](application/src/entity_resolver.py) |
+| **Anomaly Quarantining** | Diverts ambiguous candidate matches ($0.65 - 0.87$) into S3 dead-letter quarantine. | [`application/src/serverless/handlers.py`](application/src/serverless/handlers.py#L145-L185) |
+| **Apache Iceberg Lakehouse** | Transactional v2 Snappy Parquet table backed by AWS Glue Data Catalog locks. | [`application/src/iceberg_sink.py`](application/src/iceberg_sink.py) |
+| **ML Revenue Prediction** | Gradient Boosting regressor predicting corporate annual revenue ($R^2 = 0.8725$). | [`application/src/train_model.py`](application/src/train_model.py) |
+| **Atomic Idempotency** | DynamoDB conditional put (`attribute_not_exists(execution_id)`) prevents duplicate runs. | [`application/src/serverless/handlers.py`](application/src/serverless/handlers.py#L25-L65) |
+| **Automated Dead-Lettering** | Amazon SQS DLQ with 14-day retention capturing all unhandled Step Functions errors. | [`terraform/serverless/main.tf`](terraform/serverless/main.tf#L110-L125) |
+| **Zero-Trust IAM** | Least-privilege IAM roles with temporary 1-hour STS credentials and KMS CMK encryption. | [`terraform/serverless/iam.tf`](terraform/serverless/iam.tf) |
 
 ---
 
 ## 4. Repository Layout
 
 ```
-assignment-1/
+ray-platform/
 ├── Makefile                           # Command automation & verification center
 ├── README.md                          # Master project documentation (this file)
+├── pyproject.toml                     # Pinned Python package dependencies & tool settings
 │
-└──                    # PLATFORM IMPLEMENTATION ROOT
-    ├── pyproject.toml                 # Pinned Python package dependencies & tool settings
-    │
-    ├── terraform/                     # Decoupled Infrastructure as Code
+├── terraform/                         # Decoupled Infrastructure as Code
     │   ├── serverless/                # AWS Serverless Platform IaC (Primary on this branch)
     │   │   ├── main.tf                # State machine, 6 Lambdas, SQS DLQ, CloudWatch log groups
     │   │   ├── iam.tf                 # Least-privilege IAM roles (Lambda & Step Functions)
@@ -321,7 +319,7 @@ $$\text{Cost per Pipeline Execution} \approx \$0.0014\text{ (less than one-seven
 | **10,000 runs / month** | ~$230.00 / mo | **$13.94 / mo** | $216.06 | **93.9%** |
 | **50,000 runs / month** | ~$350.00 / mo | **$69.70 / mo** | $280.30 | **80.1%** |
 
-Read the full financial breakdown in [docs/cost-analysis.md](file:///docs/cost-analysis.md).
+Read the full financial breakdown in [docs/cost-analysis.md](docs/cost-analysis.md).
 
 ---
 
@@ -329,22 +327,23 @@ Read the full financial breakdown in [docs/cost-analysis.md](file:///docs/cost-a
 
 | Document | Description |
 | :--- | :--- |
-| [docs/mermaid/README.md](file:///docs/mermaid/README.md) | Centralized Mermaid visual architecture library (11 comprehensive diagrams & source files). |
-| [docs/architecture.md](file:///docs/architecture.md) | In-depth serverless architecture, Step Functions ASL, Lambda sizing, and Iceberg lakehouse specs. |
-| [docs/compute-karpenter.md](file:///docs/compute-karpenter.md) | Serverless compute architecture, concurrency model, and Firecracker microVM scaling. |
-| [docs/cost-analysis.md](file:///docs/cost-analysis.md) | AWS serverless cost model, component breakdown ($0 idle), and break-even analysis. |
-| [docs/deployment.md](file:///docs/deployment.md) | Step-by-step serverless provisioning, execution triggering, and verification runbook. |
-| [docs/security.md](file:///docs/security.md) | Zero-trust IAM execution roles, temporary STS tokens, and KMS CMK envelope encryption. |
-| [docs/troubleshooting.md](file:///docs/troubleshooting.md) | Operational playbooks, Lambda timeout/OOM triage, and SQS DLQ redrive procedures. |
-| [docs/architecture-review.md](file:///docs/architecture-review.md) | Architectural scorecard against AWS Well-Architected Framework pillars. |
-| [docs/implementation.md](file:///docs/implementation.md) | Complete 6-phase serverless implementation roadmap and deliverables. |
-| [docs/serverless-alternative.md](file:///docs/serverless-alternative.md) | Master comparative blueprint contrasting EKS and Serverless architectures. |
+| [docs/mermaid/README.md](docs/mermaid/README.md) | Centralized Mermaid visual architecture library (11 comprehensive diagrams & source files). |
+| [docs/architecture.md](docs/architecture.md) | In-depth serverless architecture, Step Functions ASL, Lambda sizing, and Iceberg lakehouse specs. |
+| [docs/compute-karpenter.md](docs/compute-karpenter.md) | Serverless compute architecture, concurrency model, and Firecracker microVM scaling. |
+| [docs/cost-analysis.md](docs/cost-analysis.md) | AWS serverless cost model, component breakdown ($0 idle), and break-even analysis. |
+| [docs/deployment.md](docs/deployment.md) | Step-by-step serverless provisioning, execution triggering, and verification runbook. |
+| [docs/security.md](docs/security.md) | Zero-trust IAM execution roles, temporary STS tokens, and KMS CMK envelope encryption. |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Operational playbooks, Lambda timeout/OOM triage, and SQS DLQ redrive procedures. |
+| [docs/architecture-review.md](docs/architecture-review.md) | Architectural scorecard against AWS Well-Architected Framework pillars. |
+| [docs/implementation.md](docs/implementation.md) | Complete 6-phase serverless implementation roadmap and deliverables. |
+| [docs/serverless-alternative.md](docs/serverless-alternative.md) | Master comparative blueprint contrasting EKS and Serverless architectures. |
+| [docs/requirements.md](docs/requirements.md) | System requirements, functional specifications, and traceability. |
 
 ---
 
-## 9. License & Author
+## 9. License & Project Info
 
 - **Project:** The Serverless AI Foundation
-- **Role:** Platform / DevOps Engineer Take-Home Implementation
+- **Platform:** AWS Serverless Alternative (Step Functions, Lambda, Iceberg, XGBoost)
 - **Branch:** `serverless`
 - **License:** Apache License 2.0

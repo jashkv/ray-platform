@@ -8,7 +8,7 @@
 - **Compute Layer:** 6 AWS Lambda Micro-Functions (`python3.12`)
 - **Storage & Catalog:** Amazon S3 + AWS Glue Data Catalog + Amazon DynamoDB
 - **Branch:** `serverless` (Dedicated Serverless Alternative Branch)
-- **Related Guides:** [`ray-ai-platform/docs/architecture.md`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/docs/architecture.md) | [`ray-ai-platform/docs/cost-analysis.md`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/docs/cost-analysis.md) | [`ray-ai-platform/docs/security.md`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/docs/security.md) | [`ray-ai-platform/docs/troubleshooting.md`](file:///ray-ai-platform/docs/troubleshooting.md)
+- **Related Guides:** [`docs/architecture.md`](architecture.md) | [`docs/cost-analysis.md`](cost-analysis.md) | [`docs/security.md`](security.md) | [`docs/troubleshooting.md`](troubleshooting.md)
 
 ---
 
@@ -77,7 +77,7 @@ make e2e-serverless-local
 
 ## 4. Terraform Cloud Deployment
 
-The serverless infrastructure is defined in [`ray-ai-platform/terraform/serverless/`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/terraform/serverless/).
+The serverless infrastructure is defined in [`terraform/serverless/`](../terraform/serverless/).
 
 ### Step 1: Initialize Terraform
 ```bash
@@ -85,7 +85,7 @@ make tf-init-serverless
 ```
 Or directly:
 ```bash
-cd ray-ai-platform/terraform/serverless
+cd terraform/serverless
 terraform init
 ```
 
@@ -101,7 +101,7 @@ make tf-plan-serverless
 
 ### Step 4: Apply Infrastructure (When Authorized)
 ```bash
-cd ray-ai-platform/terraform/serverless
+cd terraform/serverless
 terraform apply -auto-approve
 ```
 
@@ -125,7 +125,7 @@ terraform apply -auto-approve
 
 ### Triggering Execution via AWS CLI:
 ```bash
-STATE_MACHINE_ARN=$(cd ray-ai-platform/terraform/serverless && terraform output -raw state_machine_arn)
+STATE_MACHINE_ARN=$(cd terraform/serverless && terraform output -raw state_machine_arn)
 
 aws stepfunctions start-execution \
   --state-machine-arn "$STATE_MACHINE_ARN" \
@@ -182,7 +182,7 @@ aws s3 ls s3://test-ray-platform-data-123456789012/models/
 
 ### 4. Verify Dead-Letter Queue (Should be 0 messages in healthy runs)
 ```bash
-DLQ_URL=$(cd ray-ai-platform/terraform/serverless && terraform output -raw dlq_url)
+DLQ_URL=$(cd terraform/serverless && terraform output -raw dlq_url)
 aws sqs get-queue-attributes \
   --queue-url "$DLQ_URL" \
   --attribute-names ApproximateNumberOfMessages
@@ -195,7 +195,7 @@ aws sqs get-queue-attributes \
 To destroy the serverless infrastructure cleanly when no longer required:
 
 ```bash
-cd ray-ai-platform/terraform/serverless
+cd terraform/serverless
 terraform destroy -auto-approve
 ```
 Because there are no EC2 instances, EKS clusters, or NAT Gateways, teardown completes in **$< 60$ seconds** with zero lingering compute charges.

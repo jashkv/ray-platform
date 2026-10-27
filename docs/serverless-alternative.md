@@ -144,7 +144,7 @@ flowchart TD
 
 ## 4. Step Functions State Machine Design
 
-The state machine is defined using declarative **Amazon States Language (ASL)** located in [`ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json`](file:///ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json).
+The state machine is defined using declarative **Amazon States Language (ASL)** located in [`terraform/serverless/step_functions_pipeline.asl.json`](../terraform/serverless/step_functions_pipeline.asl.json).
 
 ### 4.1 Orchestration States
 1. **`Stage1_DiscoveryAndClaim` (`Task`):**
@@ -202,7 +202,7 @@ If all retries are exhausted, the state machine transitions to `RouteToFailureDL
 
 ## 5. Lambda Handler Specifications & Implementation
 
-All Lambda handlers are modularly implemented in [`ray-ai-platform/application/src/serverless/handlers.py`](file:///ray-ai-platform/application/src/serverless/handlers.py).
+All Lambda handlers are modularly implemented in [`application/src/serverless/handlers.py`](../application/src/serverless/handlers.py).
 
 ### 5.1 Function Sizing & Runtime Configurations
 
@@ -276,21 +276,21 @@ If an execution with that exact dataset hash already exists:
 
 ## 8. Terraform Serverless Infrastructure (`terraform/serverless/`)
 
-The infrastructure for the serverless alternative is managed in [`ray-ai-platform/terraform/serverless/`](file:///ray-ai-platform/terraform/serverless/).
+The infrastructure for the serverless alternative is managed in [`terraform/serverless/`](../terraform/serverless/).
 
 ### 8.1 Files Breakdown
-- [`versions.tf`](file:///ray-ai-platform/terraform/serverless/versions.tf): Pinned provider versions (`hashicorp/aws ~> 5.50`, `hashicorp/archive ~> 2.4`).
-- [`variables.tf`](file:///ray-ai-platform/terraform/serverless/variables.tf): Environment configuration, bucket names, DynamoDB table, Glue database.
-- [`main.tf`](file:///ray-ai-platform/terraform/serverless/main.tf): Provisions:
+- [`versions.tf`](../terraform/serverless/versions.tf): Pinned provider versions (`hashicorp/aws ~> 5.50`, `hashicorp/archive ~> 2.4`).
+- [`variables.tf`](../terraform/serverless/variables.tf): Environment configuration, bucket names, DynamoDB table, Glue database.
+- [`main.tf`](../terraform/serverless/main.tf): Provisions:
   - `aws_sfn_state_machine.corporate_pipeline`
   - 6 `aws_lambda_function` resources
   - `aws_sqs_queue.dlq` (Dead-Letter Queue with redrive policy)
   - `aws_cloudwatch_event_rule.pipeline_schedule`
   - CloudWatch Log Groups for every function
-- [`iam.tf`](file:///ray-ai-platform/terraform/serverless/iam.tf): Least-privilege IAM roles:
+- [`iam.tf`](../terraform/serverless/iam.tf): Least-privilege IAM roles:
   - `lambda_exec_role`: S3 read/write, DynamoDB read/write, Glue Catalog access, CloudWatch Logs, SQS enqueue.
   - `step_functions_role`: Permissions to invoke the 6 Lambda functions and route failures to SQS.
-- [`outputs.tf`](file:///ray-ai-platform/terraform/serverless/outputs.tf): State Machine ARN, Lambda Function ARNs, and DLQ URL.
+- [`outputs.tf`](../terraform/serverless/outputs.tf): State Machine ARN, Lambda Function ARNs, and DLQ URL.
 
 ### 8.2 Terraform Commands
 ```bash
@@ -314,7 +314,7 @@ The serverless alternative is backed by a 4-gate verification harness and an aut
 ```bash
 make test-serverless
 ```
-Executed via Pytest in [`ray-ai-platform/application/tests/test_serverless_pipeline.py`](file:///ray-ai-platform/application/tests/test_serverless_pipeline.py):
+Executed via Pytest in [`application/tests/test_serverless_pipeline.py`](../application/tests/test_serverless_pipeline.py):
 - `test_discovery_handler`: Verifies SHA256 hash generation and DynamoDB record claiming.
 - `test_validator_handler`: Verifies dynamic column detection and schema normalization.
 - `test_resolver_handler`: Verifies deterministic entity deduplication and quarantine isolation.
@@ -333,7 +333,7 @@ make e2e-serverless-local
 ```
 Or directly via the shell script:
 ```bash
-./ray-ai-platform/scripts/run_serverless_local.sh
+./scripts/run_serverless_local.sh
 ```
 
 **Verification Gate Execution Output:**
@@ -435,21 +435,21 @@ Use the following heuristic when choosing between the two platforms:
 The following files constitute the complete serverless alternative implementation on branch `serverless`:
 
 - **Application Logic:**
-  - [`application/src/serverless/__init__.py`](file:///ray-ai-platform/application/src/serverless/__init__.py)
-  - [`application/src/serverless/handlers.py`](file:///ray-ai-platform/application/src/serverless/handlers.py): 6 modular Lambda handlers.
-  - [`application/src/serverless/serverless_pipeline.py`](file:///ray-ai-platform/application/src/serverless/serverless_pipeline.py): Master runner orchestrating all 6 stages.
+  - [`application/src/serverless/__init__.py`](../application/src/serverless/__init__.py)
+  - [`application/src/serverless/handlers.py`](../application/src/serverless/handlers.py): 6 modular Lambda handlers.
+  - [`application/src/serverless/serverless_pipeline.py`](../application/src/serverless/serverless_pipeline.py): Master runner orchestrating all 6 stages.
 - **Orchestration Definition:**
-  - [`terraform/serverless/step_functions_pipeline.asl.json`](file:///ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json): Amazon States Language (ASL) definition.
+  - [`terraform/serverless/step_functions_pipeline.asl.json`](../terraform/serverless/step_functions_pipeline.asl.json): Amazon States Language (ASL) definition.
 - **Terraform Infrastructure as Code:**
-  - [`terraform/serverless/main.tf`](file:///ray-ai-platform/terraform/serverless/main.tf): State machine, 6 Lambdas, SQS DLQ, EventBridge.
-  - [`terraform/serverless/iam.tf`](file:///ray-ai-platform/terraform/serverless/iam.tf): Least-privilege IAM roles and policies.
-  - [`terraform/serverless/variables.tf`](file:///ray-ai-platform/terraform/serverless/variables.tf): Configurable parameters.
-  - [`terraform/serverless/outputs.tf`](file:///ray-ai-platform/terraform/serverless/outputs.tf): Resource ARNs and URLs.
-  - [`terraform/serverless/versions.tf`](file:///ray-ai-platform/terraform/serverless/versions.tf): Pinned Terraform and AWS providers.
+  - [`terraform/serverless/main.tf`](../terraform/serverless/main.tf): State machine, 6 Lambdas, SQS DLQ, EventBridge.
+  - [`terraform/serverless/iam.tf`](../terraform/serverless/iam.tf): Least-privilege IAM roles and policies.
+  - [`terraform/serverless/variables.tf`](../terraform/serverless/variables.tf): Configurable parameters.
+  - [`terraform/serverless/outputs.tf`](../terraform/serverless/outputs.tf): Resource ARNs and URLs.
+  - [`terraform/serverless/versions.tf`](../terraform/serverless/versions.tf): Pinned Terraform and AWS providers.
 - **Automated Tests & Scripts:**
-  - [`application/tests/test_serverless_pipeline.py`](file:///ray-ai-platform/application/tests/test_serverless_pipeline.py): 5 unit and integration tests.
-  - [`scripts/run_serverless_local.sh`](file:///ray-ai-platform/scripts/run_serverless_local.sh): 4-gate local verification script.
-  - [`Makefile`](file:///ray-ai-platform/Makefile): Makefile targets for test, run, and Terraform commands.
+  - [`application/tests/test_serverless_pipeline.py`](../application/tests/test_serverless_pipeline.py): 5 unit and integration tests.
+  - [`scripts/run_serverless_local.sh`](../scripts/run_serverless_local.sh): 4-gate local verification script.
+  - [`Makefile`](../Makefile): Makefile targets for test, run, and Terraform commands.
 - **Visual Reference:**
-  - [`docs/mermaid/11-serverless-architecture.mmd`](file:///ray-ai-platform/docs/mermaid/11-serverless-architecture.mmd): Standalone Mermaid diagram.
-  - [`docs/mermaid/11-serverless-architecture.md`](file:///ray-ai-platform/docs/mermaid/11-serverless-architecture.md): Deep-dive documentation.
+  - [`docs/mermaid/11-serverless-architecture.mmd`](mermaid/11-serverless-architecture.mmd): Standalone Mermaid diagram.
+  - [`docs/mermaid/11-serverless-architecture.md`](mermaid/11-serverless-architecture.md): Deep-dive documentation.

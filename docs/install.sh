@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# JM Comment: Install and verify the local tools required for the Ray AI Platform assignment.
+# Production Environment Setup: Install and verify local engineering toolchain for Ray AI Platform.
 #
 # Supported OS: Ubuntu and Debian, amd64/x86_64 or arm64/aarch64.
 # Installs: Git, Python 3/pip/venv, build tools, Docker Engine/Buildx/Compose,

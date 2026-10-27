@@ -95,7 +95,7 @@ Comparing the **AWS Serverless Alternative** against the **EKS + Karpenter Spot*
 
 ## 5. Built-in Cost Controls in Terraform
 
-The serverless Terraform module ([`ray-ai-platform/terraform/serverless/`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/terraform/serverless/)) enforces strict cost-control guardrails:
+The serverless Terraform module ([`terraform/serverless/`](../terraform/serverless/)) enforces strict cost-control guardrails:
 
 1. **Log Retention Limits:**
    All Lambda CloudWatch Log Groups configure `retention_in_days = 14`, preventing runaway log storage charges.

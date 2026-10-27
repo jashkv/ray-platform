@@ -6,7 +6,7 @@
 - **Execution Compute:** AWS Lambda Micro-Functions (Python `3.12`)
 - **Lakehouse Storage:** Apache Iceberg (Format v2) with AWS Glue Data Catalog & Amazon S3
 - **Branch:** `serverless` (Dedicated Serverless Alternative Branch)
-- **Related Documents:** [`architecture.md`](file:///ray-ai-platform/docs/architecture.md) | [`deployment.md`](file:///ray-ai-platform/docs/deployment.md) | [`implementation.md`](file:///ray-ai-platform/docs/implementation.md)
+- **Related Documents:** [`architecture.md`](architecture.md) | [`deployment.md`](deployment.md) | [`implementation.md`](implementation.md)
 
 ---
 
@@ -16,7 +16,7 @@ This document lists the prerequisites, local development tools, and AWS IAM perm
 
 Because the architecture on this branch is fully serverless, local tools like `kubectl` and `helm` are optional. The essential requirements are:
 1. **AWS CLI (`>= 2.15.0`)** with authenticated session.
-2. **Terraform (`>= 1.10.0`)** for deploying [`terraform/serverless/`](file:///ray-ai-platform/terraform/serverless/).
+2. **Terraform (`>= 1.10.0`)** for deploying [`terraform/serverless/`](../terraform/serverless/).
 3. **Python (`3.12.x`)** with virtual environment (`.venv`).
 4. **GNU Make (`>= 3.81`)** for Makefile automation.
 
@@ -45,7 +45,7 @@ You need an AWS account where the project resources can be created.
 Before starting, confirm:
 - The AWS account ID and the account owner/administrator.
 - Which AWS region will host the initial development environment.
-- Whether the account is a personal sandbox, a dedicated assignment
+- Whether the account is a personal sandbox, a dedicated project
   account, or a shared organization account.
 - Whether service control policies, permission boundaries, or
   organizational policies restrict EKS, EC2, IAM, S3, ECR, DynamoDB,
@@ -145,7 +145,7 @@ Before implementation:
 7. Record all selected versions in the repository and verify them in
    CI.
 Use version constraints and a committed lock file where supported. Do
-not write "latest" as a version policy for a reproducible assignment.
+not write "latest" as a version policy for a reproducible production environment.
 3.2 Optional local tools
 These may help, but they are not blockers for the initial cloud
 implementation:
@@ -397,7 +397,7 @@ CSV files may contain different headers, types, delimiters, encodings,
 null representations, malformed rows, or very different sizes. The
 application must inspect and report these conditions.
 
-If the assignment later supplies files that differ from the initial CSV
+If the upstream data sources later supply files that differ from the initial CSV
 assumptions, revisit the input contract before coding a parser. Do not
 silently expand supported formats without a decision.
 8.2 Canonical field mapping
@@ -423,7 +423,7 @@ Unknown columns should be retained in source provenance or a flexible
 payload according to the chosen data model. Ambiguous business fields
 should not be mapped silently.
 8.3 Revenue training readiness
-Ray Train is required by the assignment, but successful training depends
+Ray Train is designated as the distributed ML engine, but successful training depends
 on the data.
 
 Before a model-training run, confirm:

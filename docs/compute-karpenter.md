@@ -5,7 +5,7 @@
 - **Orchestration Engine:** AWS Step Functions (Distributed Map State)
 - **Execution Runtime:** AWS Lambda (Python `3.12`, Firecracker MicroVMs)
 - **Branch:** `serverless` (Dedicated Serverless Alternative Branch)
-- **Related Documents:** [`ray-ai-platform/docs/architecture.md`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/docs/architecture.md) | [`ray-ai-platform/docs/deployment.md`](file:///ray-ai-platform/docs/deployment.md) | [`ray-ai-platform/docs/cost-analysis.md`](file:///ray-ai-platform/docs/cost-analysis.md) | [`ray-ai-platform/docs/troubleshooting.md`](file:///ray-ai-platform/docs/troubleshooting.md)
+- **Related Documents:** [`docs/architecture.md`](architecture.md) | [`docs/deployment.md`](deployment.md) | [`docs/cost-analysis.md`](cost-analysis.md) | [`docs/troubleshooting.md`](troubleshooting.md)
 
 ---
 

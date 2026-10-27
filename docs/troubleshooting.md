@@ -13,11 +13,11 @@ When triaging an issue with the serverless pipeline, run the following diagnosti
 
 ```bash
 # 1. Check recent Step Functions executions
-STATE_MACHINE_ARN=$(cd ray-ai-platform/terraform/serverless && terraform output -raw state_machine_arn)
+STATE_MACHINE_ARN=$(cd terraform/serverless && terraform output -raw state_machine_arn)
 aws stepfunctions list-executions --state-machine-arn "$STATE_MACHINE_ARN" --max-results 5
 
 # 2. Inspect Dead-Letter Queue (DLQ) for failed messages
-DLQ_URL=$(cd ray-ai-platform/terraform/serverless && terraform output -raw dlq_url)
+DLQ_URL=$(cd terraform/serverless && terraform output -raw dlq_url)
 aws sqs get-queue-attributes --queue-url "$DLQ_URL" --attribute-names ApproximateNumberOfMessages
 
 # 3. Check the DynamoDB processing ledger
@@ -42,7 +42,7 @@ aws logs tail /aws/lambda/sfn-corporate-resolver --since 15m
        --log-group-name /aws/lambda/sfn-corporate-resolver \
        --filter-pattern "REPORT RequestId"
      ```
-  2. Increase the memory allocation in [`ray-ai-platform/terraform/serverless/main.tf`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/terraform/serverless/main.tf). In AWS Lambda, increasing memory from 2,048 MB to 3,072 MB or 4,096 MB **linearly increases CPU clock speed**, reducing computation time by 40–60%.
+  2. Increase the memory allocation in [`terraform/serverless/main.tf`](../terraform/serverless/main.tf). In AWS Lambda, increasing memory from 2,048 MB to 3,072 MB or 4,096 MB **linearly increases CPU clock speed**, reducing computation time by 40–60%.
   3. Increase the `timeout` parameter in `main.tf` (e.g. from 300s to 600s).
 
 ---
@@ -52,7 +52,7 @@ aws logs tail /aws/lambda/sfn-corporate-resolver --since 15m
 - **Symptoms:** Lambda terminates abruptly with `Runtime.ExitError` and CloudWatch logs report `Max Memory Used: 2048 MB (Memory Size: 2048 MB)`.
 - **Root Cause:** Large batch of raw CSV records caused pandas or PyArrow memory exhaustion during dataframe transformations.
 - **Remediation:**
-  1. Adjust `memory_size` for the affected Lambda in `ray-ai-platform/terraform/serverless/main.tf`:
+  1. Adjust `memory_size` for the affected Lambda in `terraform/serverless/main.tf`:
      ```hcl
      resource "aws_lambda_function" "resolver" {
        function_name = "sfn-corporate-resolver"
@@ -63,7 +63,7 @@ aws logs tail /aws/lambda/sfn-corporate-resolver --since 15m
      ```
   2. Apply the Terraform update:
      ```bash
-     cd ray-ai-platform/terraform/serverless && terraform apply -target=aws_lambda_function.resolver
+     cd terraform/serverless && terraform apply -target=aws_lambda_function.resolver
      ```
 
 ---
@@ -125,7 +125,7 @@ aws logs tail /aws/lambda/sfn-corporate-resolver --since 15m
 - **Remediation:**
   1. Receive and inspect the dead-letter payload:
      ```bash
-     DLQ_URL=$(cd ray-ai-platform/terraform/serverless && terraform output -raw dlq_url)
+     DLQ_URL=$(cd terraform/serverless && terraform output -raw dlq_url)
      aws sqs receive-message --queue-url "$DLQ_URL" --max-number-of-messages 1
      ```
   2. Examine the `"error"` and `"input"` attributes inside the message body to identify the failing state.

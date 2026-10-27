@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ray-data-pipeline"
 version = "1.0.0"
-description = "Distributed AI Foundation: Ray on Kubernetes with Apache Iceberg"
-readme = "../README.md"
+description = "The Serverless AI Foundation: AWS Serverless Alternative with Apache Iceberg"
+readme = "README.md"
 requires-python = ">=3.11, <3.13"
 authors = [
     { name = "Platform Engineering Team", email = "platform-eng@company.internal" }

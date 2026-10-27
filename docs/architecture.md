@@ -145,7 +145,7 @@ flowchart TD
 
 ## 3. Step Functions State Machine Design & ASL Specification
 
-The pipeline execution flow is orchestrated via AWS Step Functions, governed by the declarative Amazon States Language (ASL) definition located in [`ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json).
+The pipeline execution flow is orchestrated via AWS Step Functions, governed by the declarative Amazon States Language (ASL) definition located in [`terraform/serverless/step_functions_pipeline.asl.json`](../terraform/serverless/step_functions_pipeline.asl.json).
 
 ### 3.1 State Transitions Walkthrough
 
@@ -232,7 +232,7 @@ COL_CANDIDATES = {
 
 ## 6. Deterministic Multi-Tier Entity Resolution Engine
 
-The core business engine [`EntityResolverEngine`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/application/src/entity_resolver.py) performs deterministic record matching across heterogeneous sources:
+The core business engine [`EntityResolverEngine`](../application/src/entity_resolver.py) performs deterministic record matching across heterogeneous sources:
 
 ### Multi-Tier Corroboration Logic
 

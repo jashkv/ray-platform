@@ -18,11 +18,14 @@ echo "=== [1/7] Running Repository & Secret Pre-checks ==="
 echo "=== [2/7] Running Terraform Formatting & Static Validation ==="
 terraform fmt -check -recursive terraform/
 LAYERS=("bootstrap" "network" "eks" "data" "platform")
+if [ -d "terraform/serverless" ]; then
+    LAYERS+=("serverless")
+fi
 for layer in "${LAYERS[@]}"; do
     echo "[*] Validating terraform/${layer}..."
     (cd "terraform/${layer}" && terraform validate)
 done
-echo "[+] All 5 Terraform layers validated successfully."
+echo "[+] All ${#LAYERS[@]} Terraform layers validated successfully."
 
 echo "=== [3/7] Validating Kubernetes & Helm Manifests ==="
 ./scripts/validate_k8s_manifests.sh

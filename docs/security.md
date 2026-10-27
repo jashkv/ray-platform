@@ -28,7 +28,7 @@ The serverless platform enforces a strict Zero-Trust security posture across ide
 
 ## 2. Least-Privilege IAM Execution Roles
 
-The infrastructure provisions two distinct least-privilege IAM roles in [`ray-ai-platform/terraform/serverless/iam.tf`](file:///Users/jashkv/Desktop/assignment-1/ray-ai-platform/terraform/serverless/iam.tf):
+The infrastructure provisions two distinct least-privilege IAM roles in [`terraform/serverless/iam.tf`](../terraform/serverless/iam.tf):
 
 ### 2.1 Lambda Execution Role (`lambda_exec_role`)
 

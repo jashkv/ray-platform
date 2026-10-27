@@ -572,6 +572,34 @@ e2e-local: ## Run master local end-to-end verification harness (7 gates, exit co
 	@$(LOG_OK) "ALL 7 E2E VALIDATION GATES PASSED SUCCESSFULLY."
 
 # ==============================================================================
+# Group 14b: Serverless Alternative Workflow (AWS Step Functions + Lambda)
+# ==============================================================================
+.PHONY: test-serverless e2e-serverless-local tf-init-serverless tf-validate-serverless tf-plan-serverless
+
+test-serverless: ## Run pytest suite for Serverless Alternative Lambda handlers
+	@$(LOG_INFO) "Running Serverless Alternative test suite..."
+	@$(PYTEST) $(APP_DIR)/tests/test_serverless_pipeline.py -v
+	@$(LOG_OK) "Serverless test suite passed."
+
+e2e-serverless-local: ## Run master local end-to-end verification for Serverless Alternative
+	@$(LOG_INFO) "Executing Serverless Alternative local verification harness..."
+	@cd $(RAY_DIR) && ./scripts/run_serverless_local.sh
+	@$(LOG_OK) "Serverless verification harness completed successfully."
+
+tf-init-serverless: ## Initialize Terraform serverless layer
+	@$(LOG_INFO) "Initializing terraform/serverless..."
+	@cd $(TF_DIR)/serverless && $(TERRAFORM) init
+
+tf-validate-serverless: tf-init-serverless ## Validate syntax of Terraform serverless layer
+	@$(LOG_INFO) "Validating terraform/serverless..."
+	@cd $(TF_DIR)/serverless && $(TERRAFORM) validate
+	@$(LOG_OK) "Terraform serverless layer validated successfully."
+
+tf-plan-serverless: tf-validate-serverless ## Plan Terraform serverless layer
+	@$(LOG_INFO) "Planning terraform/serverless..."
+	@cd $(TF_DIR)/serverless && $(TERRAFORM) plan -var="environment=$(ENVIRONMENT)" -var="aws_region=$(AWS_REGION)"
+
+# ==============================================================================
 # Group 15: Observability, Dashboards & Port-Forwarding
 # ==============================================================================
 .PHONY: k8s-apply-observability ray-dashboard-port-forward prometheus-port-forward grafana-port-forward check-health logs-ray-head logs-ray-workers

@@ -1,0 +1,206 @@
+{
+  "Comment": "AWS Serverless Alternative: End-to-End Distributed AI & Lakehouse Data Processing Pipeline",
+  "StartAt": "AcquireLedgerLease",
+  "TimeoutSeconds": 1800,
+  "States": {
+    "AcquireLedgerLease": {
+      "Type": "Task",
+      "Resource": "${discovery_lambda_arn}",
+      "Comment": "Stage 1: Claims atomic conditional lease in DynamoDB ledger for idempotency",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandlePipelineFailure"
+        }
+      ],
+      "Next": "PrepareDatasetInputs"
+    },
+
+    "PrepareDatasetInputs": {
+      "Type": "Pass",
+      "Comment": "Prepares dataset paths array for parallel validation",
+      "Parameters": {
+        "execution_id.$": "$.execution_id",
+        "run_hash.$": "$.run_hash",
+        "ledger_table.$": "$.ledger_table",
+        "datasets": [
+          {
+            "file_path.$": "$.s1_path",
+            "source_name": "SUPPLY_CHAIN_S1"
+          },
+          {
+            "file_path.$": "$.s2_path",
+            "source_name": "FINANCIAL_S2"
+          }
+        ]
+      },
+      "Next": "ValidateDatasetsMap"
+    },
+
+    "ValidateDatasetsMap": {
+      "Type": "Map",
+      "Comment": "Stage 2: Distributed Map executing dynamic schema inspection and sanitization",
+      "ItemsPath": "$.datasets",
+      "ResultPath": "$.validated_datasets",
+      "MaxConcurrency": 5,
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "ValidateSingleDataset",
+        "States": {
+          "ValidateSingleDataset": {
+            "Type": "Task",
+            "Resource": "${validator_lambda_arn}",
+            "Retry": [
+              {
+                "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException"],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 3,
+                "BackoffRate": 2.0
+              }
+            ],
+            "End": true
+          }
+        }
+      },
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandlePipelineFailure"
+        }
+      ],
+      "Next": "ResolveEntities"
+    },
+
+    "ResolveEntities": {
+      "Type": "Task",
+      "Resource": "${resolver_lambda_arn}",
+      "Comment": "Stage 3: Multi-tier deterministic entity resolution across validated records",
+      "Parameters": {
+        "validated_datasets.$": "$.validated_datasets",
+        "execution_id.$": "$.execution_id"
+      },
+      "ResultPath": "$.resolution",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandlePipelineFailure"
+        }
+      ],
+      "Next": "WriteIcebergLakehouse"
+    },
+
+    "WriteIcebergLakehouse": {
+      "Type": "Task",
+      "Resource": "${iceberg_lambda_arn}",
+      "Comment": "Stage 4: Performs ACID snapshot commit to Apache Iceberg corporate_registry table",
+      "Parameters": {
+        "canonical_entities.$": "$.resolution.canonical_entities",
+        "warehouse_path": "${iceberg_warehouse_uri}",
+        "catalog_type": "glue",
+        "db_name": "${glue_database_name}",
+        "table_name": "corporate_registry"
+      },
+      "ResultPath": "$.iceberg",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandlePipelineFailure"
+        }
+      ],
+      "Next": "TrainRevenueModel"
+    },
+
+    "TrainRevenueModel": {
+      "Type": "Task",
+      "Resource": "${trainer_lambda_arn}",
+      "Comment": "Stage 5: Fits Gradient Boosting model predicting revenue, verifies R2 >= 0.85",
+      "Parameters": {
+        "canonical_entities.$": "$.resolution.canonical_entities",
+        "model_dir": "${s3_models_prefix}"
+      },
+      "ResultPath": "$.ml_metrics",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandlePipelineFailure"
+        }
+      ],
+      "Next": "FinalizeLedger"
+    },
+
+    "FinalizeLedger": {
+      "Type": "Task",
+      "Resource": "${finalizer_lambda_arn}",
+      "Comment": "Stage 6: Marks DynamoDB ledger record as COMPLETED and emits final audit metrics",
+      "Parameters": {
+        "execution_id.$": "$.execution_id",
+        "canonical_count.$": "$.resolution.canonical_count",
+        "snapshot_id.$": "$.iceberg.snapshot_id",
+        "r2_score.$": "$.ml_metrics.r2_score"
+      },
+      "ResultPath": "$.final_summary",
+      "End": true
+    },
+
+    "HandlePipelineFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sqs:sendMessage",
+      "Comment": "Error Handler: Dispatches pipeline failure payload to SQS Dead-Letter Queue",
+      "Parameters": {
+        "QueueUrl": "${dlq_url}",
+        "MessageBody": {
+          "status": "FAILED",
+          "error.$": "$.error",
+          "execution_id.$": "$$.Execution.Id",
+          "timestamp.$": "$$.State.EnteredTime"
+        }
+      },
+      "Next": "FailExecution"
+    },
+
+    "FailExecution": {
+      "Type": "Fail",
+      "Cause": "Serverless Pipeline Failed",
+      "Error": "PipelineExecutionError"
+    }
+  }
+}

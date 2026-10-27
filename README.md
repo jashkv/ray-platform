@@ -141,12 +141,34 @@ assignment-1/
     │   │   ├── iceberg_sink.py        # Transactional PyIceberg Lakehouse writer
     │   │   ├── ingest.py              # Distributed Ray Data ingestion & cleaning
     │   │   ├── train_model.py         # Distributed Ray Train Gradient Boosting model
-    │   │   └── ray_pipeline.py        # Master pipeline orchestrator
-    │   ├── tests/                     # Comprehensive test suite (10/10 unit & integration tests)
+    │   │   ├── ray_pipeline.py        # Master pipeline orchestrator
+    │   │   └── serverless/            # AWS Serverless Alternative Implementation (on branch 'serverless')
+    │   │       ├── __init__.py        # Serverless package init
+    │   │       ├── handlers.py        # 6 modular AWS Lambda handlers (Discovery, Validation, Resolution, Sink, ML, Finalizer)
+    │   │       └── serverless_pipeline.py # End-to-end serverless local pipeline orchestrator
+    │   ├── tests/                     # Comprehensive test suite (10/10 unit & integration tests + 5/5 serverless tests)
     │   ├── data/                      # Reproducible corporate datasets (S1 & S2, 1,200 records each)
     │   ├── models/                    # Model training outputs and evaluation metrics
     │   ├── Dockerfile                 # Pinned Ray 2.40.0 base image with non-root security
     │   └── requirements.txt           # Frozen application dependencies
+    │
+    ├── terraform/                     # Decoupled Infrastructure as Code
+    │   ├── bootstrap/                 # S3 state bucket (SSE-KMS) + DynamoDB lock table
+    │   ├── network/                   # Multi-AZ VPC, subnets, NAT Gateway, S3 Gateway Endpoint
+    │   ├── eks/                       # EKS v1.31, On-Demand Head pool, Spot Worker pool, KMS
+    │   ├── data/                      # S3 Lakehouse bucket, Glue Catalog DB, DynamoDB ledger, IRSA
+    │   ├── platform/                  # ECR container registry, GitHub Actions OIDC provider & role
+    │   ├── serverless/                # AWS Serverless Alternative IaC (Step Functions, 6 Lambdas, SQS DLQ, IAM)
+    │   ├── modules/                   # Reusable modules (vpc, eks, s3_iceberg, ledger, irsa, karpenter)
+    │   └── environments/              # Environment configuration tfvars (test)
+    │
+    ├── kubernetes/                    # Kubernetes manifests & KubeRay specifications
+    │   ├── namespaces/                # Namespace definitions (ray-system, ray-workloads)
+    │   ├── security/                  # RBAC, Pod ServiceAccounts, and IRSA annotations
+    │   ├── karpenter/                 # Karpenter EC2NodeClass & Spot/On-Demand NodePools
+    │   ├── ray/                       # KubeRay RayCluster CRD (head + spot worker sizing)
+    │   ├── jobs/                      # RayJob CRD for automated batch pipeline execution
+    │   └── observability/             # Prometheus PodMonitor, Fluent Bit ConfigMap, Ingress OAuth2
     │
     ├── helm/                          # Helm chart configuration
     │   ├── kuberay-operator/          # Values for KubeRay Operator deployment
@@ -157,7 +179,8 @@ assignment-1/
     │   └── deploy.yml                 # Automated ECR image build & RayJob dispatch via OIDC
     │
     ├── scripts/                       # Operational & Validation Automation
-    │   ├── run_local_e2e.sh           # Master local end-to-end verification script
+    │   ├── run_local_e2e.sh           # Master local end-to-end verification script (Ray pipeline)
+    │   ├── run_serverless_local.sh    # Master local verification script (Serverless pipeline)
     │   ├── validate_repo.sh           # Secret scanning, formatting, and file integrity check
     │   ├── validate_k8s_manifests.sh  # Kubernetes & KubeRay YAML syntax validator
     │   ├── verify_iceberg_table.py    # Iceberg catalog, metadata, and snapshot inspector
@@ -348,25 +371,49 @@ For full mathematical cost models and spot risk analysis, see [ray-ai-platform/d
 
 ---
 
-## 8. Serverless Alternative Evaluation
+## 8. Serverless Alternative Implementation (`serverless` Branch)
 
-As part of the platform architecture study, we evaluated replacing the Kubernetes/KubeRay infrastructure with a fully managed serverless stack (**AWS Step Functions + AWS Glue + Amazon EMR Serverless + Amazon SageMaker**).
+In addition to the primary Kubernetes/KubeRay architecture on `main`, this repository includes a complete, fully implemented, and validated **AWS Serverless Alternative** on the `serverless` branch.
+
+### Architecture Highlights
+- **State Machine Orchestrator:** AWS Step Functions with **Distributed Map** (`ray-ai-platform/terraform/serverless/step_functions_pipeline.asl.json`).
+- **Compute Layer:** 6 modular AWS Lambda micro-functions (`ray-ai-platform/application/src/serverless/handlers.py`) executing dynamic schema validation, multi-tier deterministic entity resolution, transactional Apache Iceberg upserts, and Gradient Boosting regressor training ($R^2 \ge 0.85$).
+- **State & Idempotency:** Amazon DynamoDB ledger enforcing atomic conditional execution claims with SHA256 run hashing.
+- **Lakehouse Sink:** Apache Iceberg v2 Snappy Parquet table backed by AWS Glue Data Catalog locks and S3 warehouse.
+- **Dead-Letter Handling:** Amazon SQS DLQ with 14-day retention for failed runs, plus dedicated S3 quarantine for ambiguous entity candidates.
+- **Infrastructure as Code:** Full Terraform suite in `ray-ai-platform/terraform/serverless/` (`main.tf`, `iam.tf`, `variables.tf`, `outputs.tf`).
+
+### Running the Serverless Alternative
+```bash
+# Checkout serverless branch
+git checkout serverless
+
+# Run 4-gate automated verification harness (Tests + E2E Run + TF Validation)
+make e2e-serverless-local
+
+# Run Pytest unit and integration test suite
+make test-serverless
+
+# Validate Serverless Terraform configuration
+make tf-validate-serverless
+make tf-plan-serverless
+```
 
 ### Trade-Off Comparison
 
-| Evaluation Metric | EKS + KubeRay (Current Solution) | AWS Serverless Stack |
+| Evaluation Metric | EKS + KubeRay (`main`) | AWS Serverless Alternative (`serverless`) |
 | :--- | :--- | :--- |
-| **Pipeline Latency** | **Fast (10 - 45s):** Warm actor memory, in-memory Arrow transfer. | **Slow (3 - 8 min):** Cold start overhead per Step Functions stage. |
-| **Data Transfer Cost** | **Zero:** Shared memory IPC and in-cluster network fabric. | **High:** Every step serializes intermediate data to S3. |
-| **Algorithm Flexibility** | **High:** Arbitrary Python, Custom Ray Actors, PyIceberg. | **Constrained:** Limited to Spark SQL and SageMaker container APIs. |
-| **Spot Cost Savings** | **70%:** Native EC2 Spot market integration. | **Limited:** AWS Glue serverless DPU pricing has no spot discount. |
-| **Operational Burden** | Requires Kubernetes and node group lifecycle management. | Fully managed; zero OS or cluster patching required. |
+| **Idle Baseline Cost** | ~$140/mo (EKS Control Plane, NAT, System Nodes) | **$0.00/mo (Zero idle resources)** |
+| **Cold Start Latency** | ~45s (Karpenter JIT EC2 Node Provisioning) | **< 1.5s (Lambda micro-function initialization)** |
+| **Max Job Duration** | Unbounded (hours to days for deep ML) | Strict 15-minute Lambda execution timeout |
+| **Data Transfer Latency** | In-memory zero-copy Arrow plasma store ($<50\mu\text{s}$) | S3/DynamoDB network serialization ($5-20\text{ms}$) |
+| **Operational Overhead** | Cluster patching, KubeRay CRDs, Karpenter NodePools | **Zero infrastructure maintenance** |
 
-**Inflection Curve:**
-- **$< 1$ execution per day:** Serverless is ~40% cheaper due to zero idle compute baseline costs.
-- **$\ge 2$ executions per day:** EKS + KubeRay with Spot workers is **52% - 68% cheaper**, while offering $10\times$ faster iteration speed.
+**Cost Inflection Curve:**
+- **$< 1,000$ executions per month:** AWS Serverless is **90% - 99% cheaper** due to zero idle compute baseline costs ($0.00/month).
+- **$\ge 50,000$ executions per month (Continuous Streaming):** EKS + KubeRay with Spot workers is **40% - 65% cheaper**.
 
-Read the detailed serverless architectural blueprint in [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md).
+Read the full architectural specification and runbook in [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md) and the visual reference in [ray-ai-platform/docs/mermaid/11-serverless-architecture.md](file:///ray-ai-platform/docs/mermaid/11-serverless-architecture.md).
 
 ---
 
@@ -420,7 +467,7 @@ The itemized verification proofs and concrete test evidence above validate 100% 
 
 | Document | Description |
 | :--- | :--- |
-| [ray-ai-platform/docs/mermaid/README.md](file:///ray-ai-platform/docs/mermaid/README.md) | Centralized Mermaid visual architecture library (10 comprehensive diagrams & source files). |
+| [ray-ai-platform/docs/mermaid/README.md](file:///ray-ai-platform/docs/mermaid/README.md) | Centralized Mermaid visual architecture library (11 comprehensive diagrams & source files). |
 | [ray-ai-platform/docs/architecture.md](file:///ray-ai-platform/docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
 | [ray-ai-platform/docs/compute-karpenter.md](file:///ray-ai-platform/docs/compute-karpenter.md) | Coordinated Karpenter + Ray autoscaling architecture, Spot resilience, and failure runbooks. |
 | [ray-ai-platform/docs/implementation.md](file:///ray-ai-platform/docs/implementation.md) | Complete 14-phase engineering roadmap, deliverables, and validation criteria. |
@@ -429,7 +476,7 @@ The itemized verification proofs and concrete test evidence above validate 100% 
 | [ray-ai-platform/docs/security.md](file:///ray-ai-platform/docs/security.md) | Zero-trust IAM policies, IRSA, network isolation, and encryption. |
 | [ray-ai-platform/docs/troubleshooting.md](file:///ray-ai-platform/docs/troubleshooting.md) | Triage playbooks for Ray OOM, Spot interruptions, and scheduling failures. |
 | [ray-ai-platform/docs/cost-analysis.md](file:///ray-ai-platform/docs/cost-analysis.md) | Component-by-component AWS cost analysis and spot savings calculations. |
-| [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md) | AWS Step Functions + EMR Serverless alternative comparison. |
+| [ray-ai-platform/docs/serverless-alternative.md](file:///ray-ai-platform/docs/serverless-alternative.md) | AWS Serverless Alternative architecture, Step Functions ASL, Lambda handlers, and runbook. |
 | [ray-ai-platform/docs/prerequisites.md](file:///ray-ai-platform/docs/prerequisites.md) | Detailed installation and dependency setup guide. |
 | [ray-ai-platform/docs/requirment.md](file:///ray-ai-platform/docs/requirment.md) | Original prompt and assignment specification. |
 

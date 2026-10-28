@@ -323,7 +323,74 @@ Read the full financial breakdown in [docs/cost-analysis.md](docs/cost-analysis.
 
 ---
 
-## 8. Complete Documentation Library
+## 8. Architectural Feasibility & Upper Bounds: Is Serverless Truly Worth It?
+
+A common question in enterprise data engineering is whether an event-driven serverless architecture (AWS Step Functions + Lambda) is genuinely capable of handling end-to-end data pipelines and machine learning workloads, or if Kubernetes (EKS + KubeRay) is fundamentally required.
+
+### 8.1 Capability & Feasibility Matrix
+
+For this platform's corporate data, entity resolution, and machine learning requirements, serverless **effortlessly handles 100% of the workload**:
+
+| Platform Requirement | Actual Application Demand | AWS Lambda & Step Functions Capability | Feasibility Verdict |
+| :--- | :--- | :--- | :--- |
+| **Dynamic Schema Ingestion** | Reads CSVs, normalizes headers, Pydantic validation (~2,400 rows) | **Distributed Map** can launch up to **10,000 parallel Lambdas**, each reading files up to 10 GB from S3. | **Passed (Native Fit)** |
+| **Entity Resolution (Fuzzy Matching)** | Levenshtein string matching + country/year corroboration (~28s CPU time) | Lambda offers up to **10 GB RAM (~6 vCPUs)** with a **15-minute timeout**. 28 seconds is only **3.1%** of Lambda's limit. | **Passed** |
+| **Quarantine Dead-Letter Routing** | Diverts ambiguous records to S3 DLQ JSON | Pure S3 PutObject API call (<50 ms latency). | **Passed (Native Fit)** |
+| **Iceberg Lakehouse Sink** | PyIceberg ACID commit to Glue Catalog + S3 Snappy Parquet (~1.2s commit time) | PyIceberg is a lightweight Python library; AWS Glue provides native catalog locking for Iceberg metadata snapshots. | **Passed** |
+| **ML Revenue Prediction** | `GradientBoostingRegressor` on tabular features ($R^2 \ge 0.85$, fitted in ~2.5s) | Lambda includes full AVX2 SIMD acceleration. Scikit-learn/XGBoost tabular models train in seconds. | **Passed** |
+
+---
+
+### 8.2 Operational & Maintenance Reality
+
+1. **True $0.00 Idle Baseline:**
+   - **Ray on EKS (`master`):** Incurs an unavoidable fixed baseline of **~$140 to $210 / month** ($73/mo EKS control plane fee, $65/mo NAT Gateway per AZ, and base system node pools), even if zero jobs are executed.
+   - **AWS Serverless (`serverless`):** Fixed idle cost is **$0.000 / month**. If the pipeline runs once per hour (720 runs/month), total compute costs are **~$0.75 / month**.
+2. **Zero Kubernetes Management Overhead:**
+   - **Kubernetes Upgrades:** EKS forces cluster version deprecation upgrades every 4 months, requiring node group drains, KubeRay operator compatibility audits, and Karpenter CRD updates.
+   - **Serverless Simplicity:** AWS manages OS patching, runtime deprecations, security patches, and hardware maintenance with zero operational downtime.
+
+---
+
+### 8.3 Hard Boundary Limits: When Serverless Breaks
+
+While serverless is optimal for tabular data processing, entity deduplication, and classical ML regression, it has **hard boundary limits**. The following architectural decision tree highlights when Ray on EKS is strictly required:
+
+```mermaid
+flowchart TD
+    Q1{"Is it Deep Learning\nor requires GPUs?"}
+    Q1 -- Yes --> EKS["Ray on EKS Required\n(Lambda has NO GPU support)"]
+    Q1 -- No --> Q2{"Does a single task take\nlonger than 15 minutes?"}
+    
+    Q2 -- Yes --> EKS2["Ray on EKS Required\n(Lambda hard limit: 900s)"]
+    Q2 -- No --> Q3{"Is dataset > 100 GB in-memory\nrequiring multi-node Plasma shuffle?"}
+    
+    Q3 -- Yes --> EKS3["Ray on EKS Required\n(Ray shared /dev/shm memory)"]
+    Q3 -- No --> SFN["USE AWS SERVERLESS\n(Cheaper, 0 maintenance, sub-second cold starts)"]
+```
+
+#### Where Serverless Cannot Compete:
+1. **No GPU Acceleration:**
+   AWS Lambda does not support GPU hardware. If your pipeline involves fine-tuning Large Language Models (LLMs), training deep neural networks with PyTorch, or executing distributed tensor operations, **Ray on EKS is strictly mandatory**.
+2. **The 15-Minute (900s) Execution Cap:**
+   AWS Lambda enforces a hard 15-minute timeout per invocation. If an unpartitioned dataset requires 45 minutes of sequential brute-force computations, Lambda will terminate abruptly with a timeout error.
+3. **RAM Ceiling (10 GB per Worker):**
+   Lambda memory is capped at 10,240 MB. Datasets requiring massive in-memory joined tables exceeding 10 GB per partition require Ray's distributed Plasma object store (`/dev/shm`).
+4. **Stateful Microsecond Inter-Process Communication:**
+   Ray allows stateful Actors to communicate in shared Linux memory with microsecond latency. Lambda functions are strictly stateless and communicate across network boundaries (S3, SQS, DynamoDB).
+
+---
+
+### 8.4 Summary & Architectural Verdict
+
+| Scenario | Recommended Architecture | Core Rationale |
+| :--- | :--- | :--- |
+| **This Platform's Workload**<br>*(Batch CSV ingestion, entity deduplication, Iceberg lakehouse commits, Gradient Boosting ML)* | **`serverless` branch**<br>*(AWS Step Functions + Lambda)* | **$0.00 idle cost**, executes in under 40 seconds, passes all tests, zero cluster maintenance. |
+| **Enterprise Big Data & Generative AI**<br>*(100M+ unpartitioned rows, 24/7 continuous streaming, PyTorch Deep Learning, GPUs)* | **`master` branch**<br>*(Ray on EKS + Karpenter)* | Distributed multi-node RAM, Spot GPU provisioning, long-running distributed Ray Actors. |
+
+---
+
+## 9. Complete Documentation Library
 
 | Document | Description |
 | :--- | :--- |
@@ -341,7 +408,7 @@ Read the full financial breakdown in [docs/cost-analysis.md](docs/cost-analysis.
 
 ---
 
-## 9. License & Project Info
+## 10. License & Project Info
 
 - **Project:** The Serverless AI Foundation
 - **Platform:** AWS Serverless Alternative (Step Functions, Lambda, Iceberg, XGBoost)

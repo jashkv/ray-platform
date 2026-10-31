@@ -656,7 +656,7 @@ flowchart TD
 flowchart TD
     subgraph Compute_Engines["Compute & Query Layer"]
         RAY_WORKER["Ray Worker (PyIceberg / DuckDB / PySpark)"]
-        ATHENA["Amazon Athena (Serverless SQL Querying)"]
+        ATHENA["Amazon Athena (Ad-hoc SQL Querying)"]
     end
 
     subgraph Catalog_Layer["Catalog & Metastore (ACID Lock Manager)"]

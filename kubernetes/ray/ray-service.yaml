@@ -1,0 +1,121 @@
+apiVersion: ray.io/v1
+kind: RayService
+metadata:
+  name: revenue-prediction-service
+  namespace: ray-workloads
+  labels:
+    app.kubernetes.io/name: revenue-prediction-service
+    app.kubernetes.io/part-of: ray-platform
+    app.kubernetes.io/component: model-serving
+spec:
+  serviceUnhealthyThreshold: 300
+  upgradeStrategy:
+    type: Rollout
+  serveConfigV2: |
+    applications:
+      - name: revenue_predictor_app
+        route_prefix: /
+        import_path: application.src.serve_model:RayServeRevenuePredictor
+        runtime_env:
+          env_vars:
+            MODEL_DIR: "application/models"
+            LOG_LEVEL: "INFO"
+        deployments:
+          - name: revenue-predictor
+            num_replicas: 2
+            max_ongoing_requests: 100
+            autoscaling_config:
+              min_replicas: 1
+              max_replicas: 8
+              target_ongoing_requests: 30
+            ray_actor_options:
+              num_cpus: 1
+              memory: 1073741824
+
+  rayClusterConfig:
+    rayVersion: "2.40.0"
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: "0.0.0.0"
+        metrics-export-port: "8080"
+        num-cpus: "0"
+        block: "true"
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ray-head-serving
+            workload-role: ray-head-system
+        spec:
+          serviceAccountName: ray-pipeline-sa
+          nodeSelector:
+            workload-role: ray-head-system
+          containers:
+            - name: ray-head
+              image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/ray-data-pipeline:latest
+              imagePullPolicy: IfNotPresent
+              resources:
+                limits:
+                  cpu: "2"
+                  memory: "4Gi"
+                requests:
+                  cpu: "2"
+                  memory: "4Gi"
+              volumeMounts:
+                - mountPath: /dev/shm
+                  name: dshm
+              ports:
+                - containerPort: 6379
+                  name: gcs
+                - containerPort: 8265
+                  name: dashboard
+                - containerPort: 8080
+                  name: metrics
+                - containerPort: 8000
+                  name: serve
+          volumes:
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: "2Gi"
+
+    workerGroupSpecs:
+      - groupName: spot-inference-workers
+        replicas: 2
+        minReplicas: 1
+        maxReplicas: 6
+        rayStartParams:
+          metrics-export-port: "8080"
+          block: "true"
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: ray-worker-serving
+              workload-role: ray-worker-spot
+          spec:
+            serviceAccountName: ray-pipeline-sa
+            nodeSelector:
+              karpenter.sh/capacity-type: spot
+            tolerations:
+              - key: "ray.io/workload"
+                operator: "Equal"
+                value: "worker"
+                effect: "NoSchedule"
+            containers:
+              - name: ray-worker
+                image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/ray-data-pipeline:latest
+                imagePullPolicy: IfNotPresent
+                resources:
+                  limits:
+                    cpu: "2"
+                    memory: "4Gi"
+                  requests:
+                    cpu: "2"
+                    memory: "4Gi"
+                volumeMounts:
+                  - mountPath: /dev/shm
+                    name: dshm
+            volumes:
+              - name: dshm
+                emptyDir:
+                  medium: Memory
+                  sizeLimit: "2Gi"

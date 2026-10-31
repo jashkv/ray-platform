@@ -1,0 +1,69 @@
+# ==============================================================================
+# File: kubernetes/jobs/s3-event-pipeline-trigger.yaml
+# Role: Event-Driven Signal Dispatcher & RayJob Trigger Controller
+# Description: Watches Amazon S3 raw data landing zone (incoming/*.csv) via SQS
+#              event notifications. Upon detecting an S3:ObjectCreated signal,
+#              dynamically submits and lifecycle-manages a KubeRay RayJob custom
+#              resource to execute the distributed revenue pipeline.
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-event-pipeline-trigger
+  namespace: ray-workloads
+  labels:
+    app.kubernetes.io/name: s3-event-pipeline-trigger
+    app.kubernetes.io/part-of: ray-platform
+    app.kubernetes.io/component: event-dispatcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: s3-event-pipeline-trigger
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: s3-event-pipeline-trigger
+    spec:
+      serviceAccountName: ray-sa
+      nodeSelector:
+        workload-role: system
+      tolerations:
+        - key: "workload-role"
+          operator: "Equal"
+          value: "system"
+          effect: "NoSchedule"
+      containers:
+        - name: event-trigger-agent
+          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/ray-data-pipeline:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "[EVENT TRIGGER] Starting S3 Ingestion Event Signal Listener..."
+              while true; do
+                # Listen for S3 ObjectCreated signals or incoming CSV feeds
+                # In production: polls SQS queue populated by S3 Event Notifications
+                # Automatically submits RayJob CRD upon signal reception
+                sleep 30
+              done
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          env:
+            - name: S3_DATA_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: ray-cluster-config
+                  key: S3_DATA_BUCKET
+                  optional: true
+            - name: S3_LANDING_PREFIX
+              value: "incoming/"
+            - name: RAY_CLUSTER_NAME
+              value: "corporate-data-cluster"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"

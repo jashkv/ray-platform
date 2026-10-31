@@ -1,3 +1,13 @@
+# ==============================================================================
+# File: application/src/catalog_factory.py
+# Role: Apache Iceberg Catalog Factory
+# Description: Initializes and manages Apache Iceberg catalog instances for the platform.
+#              Supports AWS Glue Data Catalog (cloud production with S3 storage) and
+#              SQL/SQLite Catalog (deterministic local testing with zero cloud credentials).
+# Inputs: Catalog type string ('glue' | 'sqlite' | 'rest'), warehouse storage path, database name.
+# Outputs: Initialized PyIceberg Catalog instance connected to the underlying lakehouse metastore.
+# Key Features: Dynamic catalog switching, AWS SigV4 S3 endpoint configuration, local simulation.
+# ==============================================================================
 """
 Apache Iceberg Catalog Factory.
 Supports AWS Glue Data Catalog (Cloud Production) and SQL/SQLite Catalog (Local Testing).

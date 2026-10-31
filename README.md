@@ -98,7 +98,10 @@ For complete technical specifications, see [docs/architecture.md](file:///docs/a
 | **Actor Scheduling** | Deterministic singleton placement using custom resource `entity_resolver_slot: 1` avoiding split-brain. | [`kubernetes/ray/ray-cluster.yaml`](file:///kubernetes/ray/ray-cluster.yaml#L106) |
 | **Apache Iceberg** | Transactional v2 Lakehouse table with ACID snapshots, schema evolution, and Glue Catalog integration. | [`application/src/iceberg_sink.py`](file:///application/src/iceberg_sink.py) |
 | **Entity Resolution** | Multi-tier engine: Tax ID exact match + Levenshtein name match corroborated by country and founded year. | [`application/src/entity_resolver.py`](file:///application/src/entity_resolver.py) |
-| **ML Training** | Distributed Gradient Boosting regressor predicting revenue ($R^2 = 0.8725$) using Ray Train. | [`application/src/train_model.py`](file:///application/src/train_model.py) |
+| **Data-Agnostic Ingestion** | Dynamic schema auto-discovery matching semantic aliases without hardcoded column names; sanitizes dirty currencies (`$1.2M`, `EUR`). | [`application/src/ingest.py`](file:///application/src/ingest.py) |
+| **Econometric Assumptions** | 10 defensible business/economic assumptions (Zipf's Law, Cobb-Douglas scaling, heteroskedasticity log1p transformation, sector elasticity). | [`application/src/train_model.py`](file:///application/src/train_model.py) |
+| **ML Training** | Gradient Boosting Regressor ($R^2 = 0.9515$, 5-Fold CV $R^2 = 0.9425$) with log-transformed target and out-of-fold generalization. | [`application/src/train_model.py`](file:///application/src/train_model.py) |
+| **Model Deployment & Serving** | Real-time and batch REST inference via Ray Serve (`@serve.deployment`) and KubeRay `RayService` CRD. | [`application/src/serve_model.py`](file:///application/src/serve_model.py)<br>[`kubernetes/ray/ray-service.yaml`](file:///kubernetes/ray/ray-service.yaml) |
 | **Zero-Trust IAM** | AWS IRSA (IAM Roles for Service Accounts) with least-privilege policies. Zero static AWS credentials. | [`terraform/modules/irsa/main.tf`](file:///terraform/modules/irsa/main.tf) |
 | **Zero NAT Cost** | S3 VPC Gateway Endpoint ($0/GB transfer) bypassing NAT Gateway processing fees. | [`terraform/modules/vpc/main.tf`](file:///terraform/modules/vpc/main.tf#L75-L85) |
 | **Dashboard Security** | Ray Dashboard bound to ClusterIP with optional Ingress requiring AWS Cognito / OAuth2 authentication. | [`kubernetes/observability/ingress-auth.yaml`](file:///kubernetes/observability/ingress-auth.yaml) |
@@ -136,14 +139,18 @@ ray-platform/
     ├── application/                   # Core Data & ML Python Application
     │   ├── src/                       # Pipeline source code
     │   │   ├── normalizer.py          # Corporate name normalization & legal suffix stripping
-    │   │   ├── schema_validator.py    # Schema validation & outlier bounds checking
+    │   │   ├── schema_validator.py    # Schema validation & dirty string parsing helpers
     │   │   ├── entity_resolver.py     # Deterministic stateful Ray Actor for entity resolution
     │   │   ├── catalog_factory.py     # Iceberg catalog abstraction (Glue for AWS, SQLite for local)
     │   │   ├── iceberg_sink.py        # Transactional PyIceberg Lakehouse writer
-    │   │   ├── ingest.py              # Distributed Ray Data ingestion & cleaning
-    │   │   ├── train_model.py         # Distributed Ray Train Gradient Boosting model
+    │   │   ├── ingest.py              # Data-agnostic CSV ingestion & schema auto-discovery
+    │   │   ├── generate_datasets.py   # Authentic corporate dataset generator (10 assumptions)
+    │   │   ├── train_model.py         # Econometric revenue prediction model (R² = 0.9515)
+    │   │   ├── serve_model.py         # Live inference microservice (Ray Serve & FastAPI)
     │   │   └── ray_pipeline.py        # Master pipeline orchestrator
-    │   ├── tests/                     # Comprehensive test suite (10/10 unit & integration tests)
+    │   ├── tests/                     # Automated test suite (16/16 unit, integration & serving tests)
+    │   ├── static/                    # Interactive web console dashboard
+    │   │   └── index.html             # Multi-tab CSV uploader, distribution & company separation viewer
     │   ├── data/                      # Reproducible corporate datasets (S1 & S2, 1,200 records each)
     │   ├── models/                    # Model training outputs and evaluation metrics
     │   ├── Dockerfile                 # Pinned Ray 2.40.0 base image with non-root security
@@ -166,6 +173,8 @@ ray-platform/
     │   └── check_ray_health.sh        # Cluster health, worker status, and actor placement check
     │
     └── docs/                          # Complete Platform Documentation Suite
+        ├── application.md             # Comprehensive application architecture & technical spec
+        ├── guide.md                   # Developer & operator walkthrough guide
         ├── architecture.md            # Comprehensive unified architecture blueprint
         ├── compute-karpenter.md       # Karpenter + Ray autoscaling architecture & operations
         ├── implementation.md          # Complete 14-phase implementation plan & runbook
@@ -174,9 +183,9 @@ ray-platform/
         ├── security.md                # Zero-Trust security, IRSA, and credential policy
         ├── troubleshooting.md         # Operational playbooks, failure modes, and OOM triage
         ├── cost-analysis.md           # AWS cost model, Spot savings, and budget justification
-        ├── serverless-alternative.md  # Serverless architecture evaluation & cost comparison
         ├── prerequisites.md           # Detailed installation and dependency setup guide
         ├── requirements.md            # System requirements, specifications & traceability
+        ├── mermaid/                   # Complete Mermaid visual architecture & flow library
         └── install.sh                 # Environment setup script
 ```
 
@@ -198,8 +207,10 @@ The repository includes a comprehensive `Makefile` automating the entire lifecyc
 make help          # Interactive catalog of all 50+ automation targets
 make setup         # Audit tools and bootstrap Python virtual environment
 make lint          # Run formatting and linters (Python, Terraform, secret scan)
-make test          # Run complete test suite (generator, resolver, Iceberg, pipeline)
+make test          # Run complete test suite (16/16 unit, integration & serving tests)
 make e2e-local     # Execute master local end-to-end verification harness (7 gates)
+make serve-model   # Start production model inference microservice on http://localhost:8000
+make query-model   # Query deployed model with sample unforeseen corporate records
 ```
 
 Alternatively, run the script directly:
@@ -348,29 +359,79 @@ For full mathematical cost models and spot risk analysis, see [docs/cost-analysi
 
 ---
 
-## 8. Serverless Alternative Evaluation
+## 8. Econometric Assumptions & Unforeseen Data Ingestion
 
-As part of the platform architecture study, we evaluated replacing the Kubernetes/KubeRay infrastructure with a fully managed serverless stack (**AWS Step Functions + AWS Glue + Amazon EMR Serverless + Amazon SageMaker**).
+In enterprise data platforms, datasets cannot rely on hardcoded schemas or artificial company numbers. The platform implements a **Data Contract with Dynamic Schema Auto-Discovery** paired with **10 Defensible Econometric & Machine Learning Assumptions**:
 
-### Trade-Off Comparison
+### A. Data-Agnostic Dynamic Ingestion
+- **Automatic Semantic Mapping:** Automatically detects company names (`corporate_name`, `legal_name`, `company_name`, `vendor`), tax identifiers (`tax_id`, `ein`, `vat`), revenues (`annual_revenue`, `audited_revenue`, `sales`), and headcounts across arbitrary unforeseen CSV headers.
+- **Robust String Sanitization:** Parses dirty numbers (`"$ 14,250,000"`, `"28.5M"`, `"550k"`, `"N/A"`) into clean numerical floats without throwing exceptions.
+- **Configurable Overrides:** Supports custom column mappings via CLI `--schema-mapping` JSON if an enterprise data team requires explicit field overrides.
 
-| Evaluation Metric | EKS + KubeRay (Current Solution) | AWS Serverless Stack |
-| :--- | :--- | :--- |
-| **Pipeline Latency** | **Fast (10 - 45s):** Warm actor memory, in-memory Arrow transfer. | **Slow (3 - 8 min):** Cold start overhead per Step Functions stage. |
-| **Data Transfer Cost** | **Zero:** Shared memory IPC and in-cluster network fabric. | **High:** Every step serializes intermediate data to S3. |
-| **Algorithm Flexibility** | **High:** Arbitrary Python, Custom Ray Actors, PyIceberg. | **Constrained:** Limited to Spark SQL and SageMaker container APIs. |
-| **Spot Cost Savings** | **70%:** Native EC2 Spot market integration. | **Limited:** AWS Glue serverless DPU pricing has no spot discount. |
-| **Operational Burden** | Requires Kubernetes and node group lifecycle management. | Fully managed; zero OS or cluster patching required. |
+### B. 10 Defensible Domain & Econometric Assumptions
 
-**Inflection Curve:**
-- **$< 1$ execution per day:** Serverless is ~40% cheaper due to zero idle compute baseline costs.
-- **$\ge 2$ executions per day:** EKS + KubeRay with Spot workers is **52% - 68% cheaper**, while offering $10\times$ faster iteration speed.
-
-Read the detailed serverless architectural blueprint in [docs/serverless-alternative.md](file:///docs/serverless-alternative.md).
+| # | Assumption Name | Economic / Statistical Rationale | Production Implementation |
+| :-: | :--- | :--- | :--- |
+| **1** | **Zipf's Law (Power-Law Firm Sizes)** | Empirical firm sizes follow a heavy-tailed log-normal distribution ($>80\%$ are SMEs $<250$ headcount; top $1\%$ are enterprise giants). | Features are modeled with scale-invariant log transformations rather than assuming normal bell curves. |
+| **2** | **Cobb-Douglas Log-Linear Scaling** | Corporate revenue scales log-linearly with labor and capital factors: $\log(\text{Revenue}) = \log(A) + \alpha \log(\text{Labor})$. | The model trains on $\log(1 + \text{Revenue})$ to linearize scale dynamics across 4 orders of magnitude. |
+| **3** | **Heterogeneous Labor Productivity** | Capital-intensive sectors (Energy, FinTech, Pharma) generate vastly higher revenue per head ($\$380\text{k}-\$450\text{k}$) than labor-heavy sectors ($\$150\text{k}-\$180\text{k}$). | Tree-based cross-feature interactions capture sector-specific revenue-per-employee slopes. |
+| **4** | **Scale-Dependent Heteroskedasticity** | Residual variance is proportional to firm size (a $\$10\text{B}$ firm varies by $\pm \$500\text{M}$; a $\$1\text{M}$ firm varies by $\pm \$50\text{k}$). | Log1p target transformation stabilizes residual variance and prevents multi-billion-dollar outliers from dominating MSE loss. |
+| **5** | **Corporate Maturity Premium** | Established corporations surviving multiple macroeconomic business cycles exhibit higher distribution efficiency and lower revenue variance. | `company_age` (derived dynamically relative to fiscal year) compounds baseline revenue scale. |
+| **6** | **Macroeconomic Geographic Parity** | Local jurisdictions reflect distinct purchasing power parities (PPP) and national market sizes. | Categorical encoder with `handle_unknown="ignore"` defaults unforeseen countries to baseline medians without failing. |
+| **7** | **Realistic Data Incompleteness** | Cross-border suppliers and private firms frequently omit government registration numbers. | Multi-tier entity resolution gracefully falls back from tax IDs to corroborating token similarity. |
+| **8** | **Syntactic & Formatting Noise Tolerance** | Unforeseen feeds feature varied legal suffixes (`GmbH`, `A/S`, `PLC`, `LLC`) and dirty currencies. | Unicode NFKD decomposition, regex legal entity stripping, and dynamic float parsing sanitize inputs. |
+| **9** | **Non-Linear Threshold Discontinuities** | Corporate performance exhibits step-function thresholds (e.g. 50, 250, 500 regulatory headcount bands). | Gradient Boosted Decision Trees naturally capture non-linear step thresholds without artificial polynomial expansion. |
+| **10** | **Out-of-Fold Generalization** | Corporate overlap between training and evaluation causes catastrophic data leakage. | 5-Fold cross-validation on held-out unseen companies verifies true generalization ($R^2 = 0.9515$, CV $R^2 = 0.9425$). |
 
 ---
 
-## 9. Observability & Operations
+## 9. Model Deployment & Live Serving (Ray Serve & KubeRay)
+
+Trained revenue prediction models are packaged as production inference artifacts and deployed for real-time and batch serving:
+
+### Architecture
+- **Inference Microservice:** [`application/src/serve_model.py`](file:///application/src/serve_model.py) exposes a production ASGI/FastAPI application integrated with Ray Serve (`@serve.deployment`).
+- **Kubernetes Autoscaling:** [`kubernetes/ray/ray-service.yaml`](file:///kubernetes/ray/ray-service.yaml) deploys a KubeRay `RayService` custom resource, auto-scaling inference replicas from 1 to 8 based on request concurrency.
+- **Artifact Packaging:** Self-contained inference pipeline (`preprocessor` + `TransformedTargetRegressor`) persisted to [`application/models/revenue_model.joblib`](file:///application/models/revenue_model.joblib) alongside [`model_metadata.json`](file:///application/models/model_metadata.json).
+
+### Live REST Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :---: | :--- |
+| `/health` | `GET` | Health and readiness probe returning model load state and version. |
+| `/metadata` | `GET` | Exposes model version, evaluation metrics ($R^2$, MAE, RMSE), and the 10 Econometric Assumptions. |
+| `/predict` | `POST` | Real-time prediction for an unforeseen corporate entity payload. |
+| `/batch-predict` | `POST` | Vectorized batch inference for corporate portfolio analysis. |
+
+### Testing Deployed Model via Makefile
+```bash
+# 1. Start the model serving microservice locally
+make serve-model
+
+# 2. In another terminal, query sample unforeseen companies
+make query-model
+```
+
+Sample Prediction Response for an unforeseen company:
+```json
+{
+  "company_name": "Valence BioSystems GmbH",
+  "predicted_annual_revenue_usd": 68420150.25,
+  "predicted_revenue_formatted": "$68,420,150.25",
+  "firm_size_tier": "Medium Enterprise",
+  "model_version": "1.2.0",
+  "inputs_evaluated": {
+    "headcount": 180,
+    "sector": "Healthcare",
+    "country": "DE",
+    "operating_age_years": 11
+  }
+}
+```
+
+---
+
+## 10. Observability & Operations
 
 The platform exposes deep instrumentation across infrastructure, operator, and distributed application layers:
 
@@ -397,7 +458,7 @@ For operational playbooks and troubleshooting procedures, see [docs/troubleshoot
 
 ---
 
-## 10. Requirements Traceability Matrix
+## 11. Requirements Traceability Matrix
 
 Every requirement from the platform engineering specification has been implemented and validated against concrete evidence:
 
@@ -405,20 +466,24 @@ Every requirement from the platform engineering specification has been implement
 | :--- | :---: | :---: | :--- |
 | **A. Infrastructure as Code** | REQ-IAC-001 to 008 | **PASS** | Modular Terraform, 5 state layers, S3/DynamoDB locking, Spot worker pools. |
 | **B. Ray Platform** | REQ-RAY-001 to 007 | **PASS** | KubeRay CRD, 4Gi `/dev/shm`, Arrow sizing, `entity_resolver_slot: 1` actor. |
-| **C. Data & ML Pipeline** | REQ-DAT-001 to 006 | **PASS** | 2,400 corporate records, multi-tier resolver, real Iceberg sink, $R^2 = 0.8725$. |
+| **C. Data & ML Pipeline** | REQ-DAT-001 to 006 | **PASS** | 2,400 corporate records, data-agnostic ingestion, 10 assumptions, real Iceberg sink, $R^2 = 0.9515$. |
 | **D. Security & Zero-Trust** | REQ-SEC-001 to 006 | **PASS** | IRSA IAM policies, KMS encryption, no static AWS keys, authenticated dashboard. |
 | **E. CI/CD & Automation** | REQ-OPS-001 to 004 | **PASS** | GitHub Actions PR checks, OIDC deployment role, RayJob execution. |
-| **F. Observability** | REQ-OBS-001 to 003 | **PASS** | Prometheus PodMonitor, Fluent Bit CloudWatch, Grafana JSON dashboards. |
-| **G. Documentation** | REQ-DOC-001 to 005 | **PASS** | Complete architecture, runbooks, serverless trade-off, and cost analysis. |
+| **F. Model Deployment** | REQ-SRV-001 to 003 | **PASS** | Ray Serve microservice, KubeRay RayService CRD, real-time `/predict` REST API. |
+| **G. Observability** | REQ-OBS-001 to 003 | **PASS** | Prometheus PodMonitor, Fluent Bit CloudWatch, Grafana JSON dashboards. |
+| **H. Documentation** | REQ-DOC-001 to 005 | **PASS** | Complete architecture, 10 assumptions, runbooks, and cost analysis. |
 
 The itemized verification proofs and concrete test evidence above validate 100% compliance across all 28 project requirements.
 
 ---
 
-## 11. Complete Documentation Library
+## 12. Complete Documentation Library
 
 | Document | Description |
 | :--- | :--- |
+| [docs/application.md](file:///docs/application.md) | Comprehensive application architecture, dynamic ingestion, and econometric specification. |
+| [docs/mermaid/application-flow.md](file:///docs/mermaid/application-flow.md) | Complete application flowcharts, sequence diagrams, and decision trees. |
+| [docs/guide.md](file:///docs/guide.md) | Step-by-step developer and operator walkthrough guide, recipes, and runbooks. |
 | [docs/mermaid/README.md](file:///docs/mermaid/README.md) | Centralized Mermaid visual architecture library (10 comprehensive diagrams & source files). |
 | [docs/architecture.md](file:///docs/architecture.md) | In-depth platform architecture, sizing calculations, Ray actor mechanics, and manifests. |
 | [docs/compute-karpenter.md](file:///docs/compute-karpenter.md) | Coordinated Karpenter + Ray autoscaling architecture, Spot resilience, and failure runbooks. |
@@ -428,7 +493,6 @@ The itemized verification proofs and concrete test evidence above validate 100% 
 | [docs/security.md](file:///docs/security.md) | Zero-trust IAM policies, IRSA, network isolation, and encryption. |
 | [docs/troubleshooting.md](file:///docs/troubleshooting.md) | Triage playbooks for Ray OOM, Spot interruptions, and scheduling failures. |
 | [docs/cost-analysis.md](file:///docs/cost-analysis.md) | Component-by-component AWS cost analysis and spot savings calculations. |
-| [docs/serverless-alternative.md](file:///docs/serverless-alternative.md) | AWS Step Functions + EMR Serverless alternative comparison. |
 | [docs/prerequisites.md](file:///docs/prerequisites.md) | Detailed installation and dependency setup guide. |
 | [docs/requirements.md](file:///docs/requirements.md) | System requirements, functional specifications, and traceability. |
 

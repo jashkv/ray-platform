@@ -1,3 +1,16 @@
+# ==============================================================================
+# File: application/src/normalizer.py
+# Role: Corporate Name Normalization, String Similarity & UUIDv5 Engine
+# Description: Standardizes dirty corporate names and computes fuzzy phonetic/string similarities.
+#              Generates deterministic, collision-resistant Canonical Company UUIDv5 identifiers.
+# Inputs: Raw corporate name strings, tax IDs, country codes.
+# Outputs: Standardized clean names, Levenshtein distance ratios (0.0 to 1.0), Canonical IDs (COMP-XXXXXXXX-XXXX).
+# Key Features:
+#   - Unicode NFKD decomposition and ASCII encoding conversion
+#   - Comprehensive regex stripping of international corporate legal suffixes (Inc, Corp, LLC, GmbH, A/S, PLC)
+#   - Pure Python dynamic programming Levenshtein distance ratio calculation
+#   - Deterministic UUIDv5 namespace generation seeded by tax ID or normalized name+country
+# ==============================================================================
 """
 Company Name Normalization, String Similarity, and Canonical Identifier Engine.
 """

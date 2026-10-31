@@ -1,3 +1,17 @@
+# ==============================================================================
+# File: application/src/entity_resolver.py
+# Role: Deterministic Multi-Tier Entity Resolution Engine & Ray Actor
+# Description: Performs high-precision corporate deduplication and entity resolution
+#              across disparate corporate feeds. Replaces naive hashing with explainable,
+#              evidence-based multi-tier matching rules.
+# Inputs: Raw company records (name, tax ID, country, founded year, employee count, sector, revenue).
+# Outputs: CanonicalCompanyEntity instances with deterministic UUIDv5 IDs and quarantined anomalies.
+# Key Features:
+#   - Tier 1: Strong Identifier Exact Match (Tax ID / EIN / Business Registration #)
+#   - Tier 2: Normalized Name Levenshtein Similarity (>= 0.88) + Attribute Corroboration (+/- 2 years)
+#   - Tier 3: Ambiguity Quarantine Detection (Score >= 0.65 without attribute corroboration)
+#   - Ray Actor custom resource constraint: {"entity_resolver_slot": 1} for dedicated scheduling
+# ==============================================================================
 """
 Deterministic Multi-Tier Entity Resolver Actor for Ray Platform.
 Replaces placeholder hash() resolution with explainable evidence-based matching.

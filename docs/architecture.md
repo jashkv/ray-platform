@@ -640,25 +640,7 @@ Two GitHub Actions workflows automate pipeline validation and deployment using A
 
 ---
 
-## 14. Serverless Alternative Evaluation
-
-| Architectural Dimension | Amazon EKS + KubeRay (Implemented) | Serverless Alternative (Step Functions + AWS Glue + SageMaker) |
-| :--- | :--- | :--- |
-| **Pipeline Latency** | **Fast (10 - 45s):** Warm actor memory and in-memory Arrow transfer. | **Slow (3 - 8 min):** Cold starts per Step Functions stage. |
-| **Data Transfer Cost** | **Zero:** Shared memory IPC and in-cluster network fabric. | **High:** Intermediates must be serialized and written to S3. |
-| **Algorithm Flexibility** | **High:** Arbitrary Python, Custom Ray Actors, PyIceberg. | **Constrained:** Restricted to Spark SQL and SageMaker container APIs. |
-| **Spot Cost Savings** | **70%:** Native EC2 Spot market integration. | **Limited:** AWS Glue serverless DPU pricing offers no spot discount. |
-| **Operational Burden** | Requires Kubernetes and node group lifecycle management. | Fully managed; zero OS or cluster patching required. |
-
-**Inflection Curve:**
-- At $< 1$ run per day, Serverless is ~40% cheaper due to zero idle compute baseline costs.
-- At $\ge 2$ daily pipeline runs, **EKS + KubeRay with Spot workers is 52% - 68% cheaper**, while offering $10\times$ faster iteration latency.
-
-For full mathematical cost models, see [docs/serverless-alternative.md](file:///docs/serverless-alternative.md).
-
----
-
-## 15. Operational Acceptance Checklist
+## 14. Operational Acceptance Checklist
 
 - [x] **1. Synthetic Datasets:** `application/data/supply_chain_data_s1.csv` and `application/data/financial_data_s2.csv` each contain 1,200 records ($\ge 1,000$ requirement) with corporate attributes.
 - [x] **2. Decoupled Modular Terraform:** 5 isolated layers (`bootstrap`, `network`, `eks`, `data`, `platform`) with S3 encryption and DynamoDB locking.

@@ -492,7 +492,7 @@ k8s-check-nodes: ## List EKS nodes with capacity type (Spot/On-Demand) and insta
 # ==============================================================================
 # Group 12: Data Engineering & Synthetic Data Generation
 # ==============================================================================
-.PHONY: generate-data verify-data upload-data-s3
+.PHONY: generate-data verify-data upload-data-s3 upload-data-dry-run upload-file
 
 generate-data: ## Generate synthetic corporate datasets (S1 & S2, 1,200 records each)
 	@$(LOG_INFO) "Generating corporate datasets..."
@@ -510,11 +510,19 @@ verify-data: generate-data ## Verify generated CSV dataset row counts (>= 1,000 
 	fi
 	@$(LOG_OK) "Dataset record counts meet production data platform specifications."
 
-upload-data-s3: verify-data ## Upload datasets to s3://$(DATA_BUCKET)/incoming/
-	@$(LOG_INFO) "Uploading CSV files to S3 bucket $(DATA_BUCKET)..."
-	@aws s3 cp $(APP_DIR)/data/supply_chain_data_s1.csv s3://$(DATA_BUCKET)/incoming/supply_chain_data_s1.csv
-	@aws s3 cp $(APP_DIR)/data/financial_data_s2.csv s3://$(DATA_BUCKET)/incoming/financial_data_s2.csv
+upload-data-s3: verify-data ## Upload datasets to s3://$(DATA_BUCKET)/incoming/ with KMS encryption
+	@$(LOG_INFO) "Uploading CSV datasets to S3 bucket $(DATA_BUCKET)..."
+	@$(PYTHON) $(SCRIPTS_DIR)/upload_dataset_to_s3.py --bucket $(DATA_BUCKET) --dir $(APP_DIR)/data
 	@$(LOG_OK) "Datasets uploaded to S3 incoming landing zone."
+
+upload-data-dry-run: verify-data ## Validate datasets without making AWS billable calls
+	@$(LOG_INFO) "Running pre-flight dry-run dataset validation..."
+	@$(PYTHON) $(SCRIPTS_DIR)/upload_dataset_to_s3.py --dry-run --dir $(APP_DIR)/data
+
+upload-file: ## Upload an arbitrary CSV feed to S3 (Usage: make upload-file FILE=path/to/data.csv)
+	@if [ -z "$(FILE)" ]; then $(LOG_ERR) "Usage: make upload-file FILE=path/to/feed.csv"; exit 1; fi
+	@$(LOG_INFO) "Uploading $(FILE) to S3 bucket $(DATA_BUCKET)..."
+	@$(PYTHON) $(SCRIPTS_DIR)/upload_dataset_to_s3.py --bucket $(DATA_BUCKET) --file $(FILE)
 
 # ==============================================================================
 # Group 13: Apache Iceberg Lakehouse Management
@@ -533,7 +541,7 @@ iceberg-local-verify: ## Run PyIceberg local test suite
 # ==============================================================================
 # Group 14: Ray Testing, Jobs & Local Reproduction
 # ==============================================================================
-.PHONY: test test-unit test-integration test-all ray-smoke-test ray-job-submit ray-job-status ray-job-logs e2e-local
+.PHONY: test test-unit test-integration test-all ray-smoke-test ray-job-submit ray-job-status ray-job-logs serve-model query-model frontend ui k8s-apply-rayservice e2e-local
 
 test: test-all ## Run complete pytest test suite
 
@@ -565,6 +573,23 @@ ray-job-status: ## Query current status of submitted RayJob
 
 ray-job-logs: ## Stream driver logs from running RayJob
 	@$(KUBECTL) logs -n $(K8S_NAMESPACE_WORK) -l ray.io/node-type=head --tail=100 -f
+
+serve-model: ## Start corporate revenue prediction microservice and web UI on http://localhost:8000
+	@$(LOG_INFO) "Starting model inference microservice and interactive console on http://0.0.0.0:8000..."
+	@$(PYTHON) -m application.src.serve_model --port 8000
+
+ui: serve-model ## Launch interactive web console for dataset ingestion & model inference
+
+frontend: serve-model ## Launch interactive web console on http://localhost:8000
+
+query-model: ## Query deployed revenue prediction model with sample unforeseen companies
+	@$(LOG_INFO) "Querying live model service with unforeseen corporate samples..."
+	@$(PYTHON) scripts/query_model_service.py
+
+k8s-apply-rayservice: k8s-apply-security ## Deploy RayService CRD for production model serving
+	@$(LOG_INFO) "Deploying RayService revenue-prediction-service..."
+	@$(KUBECTL) apply -f $(K8S_DIR)/ray/ray-service.yaml
+	@$(LOG_OK) "RayService manifest submitted."
 
 e2e-local: ## Run master local end-to-end verification harness (7 gates, exit code 0)
 	@$(LOG_INFO) "Executing master local end-to-end verification script..."

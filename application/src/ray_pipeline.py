@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+# ==============================================================================
+# File: application/src/ray_pipeline.py
+# Role: Master Distributed Ray Data & Machine Learning Pipeline Entrypoint
+# Description: Central orchestrator executing the 4-phase end-to-end distributed pipeline:
+#              1. Data-Agnostic CSV Ingestion & Schema Auto-Discovery
+#              2. Deterministic Multi-Tier Entity Resolution (EntityResolver Actor)
+#              3. Transactional Apache Iceberg Table Persistence (corporate_registry)
+#              4. Econometric Revenue Prediction Model Training & Evaluation (Ray Train)
+# Inputs: CLI arguments (--s1-input, --s2-input, --catalog-type, --warehouse-path, --output-model-dir).
+# Outputs: JSON execution summary with ingestion counts, Iceberg commit snapshot, and ML evaluation metrics.
+# Key Features: Local simulation and AWS cloud execution, structured logging, failure isolation.
+# ==============================================================================
 """
 Ray AI Pipeline Entrypoint — Distributed AI Foundation.
 Orchestrates:

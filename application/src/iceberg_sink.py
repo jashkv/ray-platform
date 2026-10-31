@@ -1,3 +1,15 @@
+# ==============================================================================
+# File: application/src/iceberg_sink.py
+# Role: Transactional Apache Iceberg Lakehouse Sink
+# Description: Persists harmonized canonical company entities into an Apache Iceberg table
+#              ('corporate_data_db.corporate_registry') with ACID snapshot guarantees.
+# Inputs: List of CanonicalCompanyEntity instances, catalog type ('glue' | 'sqlite'), warehouse path.
+# Outputs: Dictionary containing transaction commit details (snapshot ID, record count, status).
+# Key Features:
+#   - PyArrow schema serialization and Arrow Table conversion
+#   - Optimistic concurrency control via AWS Glue Data Catalog or SQLite
+#   - ACID snapshot generation, manifest list updates, and zero table-locking schema evolution
+# ==============================================================================
 """
 Transactional Apache Iceberg Sink for Corporate Registry Lakehouse Table.
 Performs real schema validation, Arrow serialization, and transactional commits.

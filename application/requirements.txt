@@ -1,7 +1,7 @@
 # ==============================================================================
 # Pinned Application Dependencies (Python 3.11 / 3.12 Compatible)
 # ==============================================================================
-ray[default,data,train]==2.40.0
+ray[default,data,train,serve]==2.40.0
 pyiceberg[glue,s3fs,sql-sqlite]==0.7.1
 cryptography<49
 xgboost>=2.1.0
@@ -15,3 +15,6 @@ s3fs>=2023.1.0,<2024.1.0
 pyyaml>=6.0
 joblib>=1.4.0
 pytest>=8.0.0
+fastapi>=0.110.0
+uvicorn>=0.28.0
+starlette>=0.36.0
